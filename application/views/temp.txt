@@ -1,0 +1,112 @@
+SELECT (SELECT COUNT(1) FROM (SELECT clockings.*, shifts.start_time FROM clockings
+INNER JOIN shift_days ON clockings.clock_date = shift_days.date 
+INNER JOIN shifts ON clockings.shift_id = shifts.id
+WHERE shift_days.shift_id = clockings.shift_id
+GROUP BY clock_date HAVING clockings.clock_in < shifts.start_time) AS t1) as early,
+
+(SELECT COUNT(1) as early FROM (SELECT clockings.*, shifts.start_time FROM clockings
+INNER JOIN shift_days ON clockings.clock_date = shift_days.date 
+INNER JOIN shifts ON clockings.shift_id = shifts.id
+WHERE shift_days.shift_id = clockings.shift_id
+GROUP BY clock_date HAVING clockings.clock_in > shifts.start_time) AS t1) as late,
+
+
+(SELECT COUNT(1) as early FROM (SELECT clockings.*, shifts.start_time FROM clockings
+INNER JOIN shift_days ON clockings.clock_date = shift_days.date 
+INNER JOIN shifts ON clockings.shift_id = shifts.id
+WHERE shift_days.shift_id = clockings.shift_id
+GROUP BY clock_date HAVING clockings.clock_in >= shifts.start_time) AS t1) as ontime
+
+
+
+
+
+
+
+SELECT department_id, SUM(cnt) as early FROM (SELECT department_id, clockings.*, shifts.start_time, count(1) as cnt FROM clockings
+INNER JOIN shift_days ON clockings.clock_date = shift_days.date 
+INNER JOIN shifts ON clockings.shift_id = shifts.id
+INNER JOIN employees on clockings.employee_id = employees.id
+WHERE shift_days.shift_id = clockings.shift_id
+GROUP BY department_id,clock_date HAVING clockings.clock_in > shifts.start_time) t1
+
+
+
+
+SELECT *, (SELECT COUNT(1) FROM (SELECT department_id, clockings.*, shifts.start_time FROM clockings
+INNER JOIN shift_days ON clockings.clock_date = shift_days.date 
+INNER JOIN shifts ON clockings.shift_id = shifts.id
+INNER JOIN employees on clockings.employee_id = employees.id
+WHERE shift_days.shift_id = clockings.shift_id
+GROUP BY department_id,clock_date) as x1  WHERE clock_in > start_time) as late
+
+FROM (SELECT department_id, clockings.*, shifts.start_time FROM clockings
+INNER JOIN shift_days ON clockings.clock_date = shift_days.date 
+INNER JOIN shifts ON clockings.shift_id = shifts.id
+INNER JOIN employees on clockings.employee_id = employees.id
+WHERE shift_days.shift_id = clockings.shift_id
+GROUP BY department_id,clock_date) as x
+
+
+
+
+
+
+
+
+SELECT department_id, SUM(cnt) as cnt, "early" as status FROM (SELECT department_id, clockings.*, shifts.start_time, count(1) as cnt FROM clockings
+INNER JOIN shift_days ON clockings.clock_date = shift_days.date 
+INNER JOIN shifts ON clockings.shift_id = shifts.id
+INNER JOIN employees on clockings.employee_id = employees.id
+WHERE shift_days.shift_id = clockings.shift_id
+GROUP BY department_id,clock_date HAVING clockings.clock_in < shifts.start_time) t1
+
+UNION ALL 
+
+SELECT department_id, SUM(cnt) as cnt, "late" as status FROM (SELECT department_id, clockings.*, shifts.start_time, count(1) as cnt FROM clockings
+INNER JOIN shift_days ON clockings.clock_date = shift_days.date 
+INNER JOIN shifts ON clockings.shift_id = shifts.id
+INNER JOIN employees on clockings.employee_id = employees.id
+WHERE shift_days.shift_id = clockings.shift_id
+GROUP BY department_id,clock_date HAVING clockings.clock_in > shifts.start_time) t2
+
+
+
+
+
+//this one worked
+SELECT department_name, 
+
+SUM(case when status = 'early' then 1 else 0 end) as early,
+SUM(case when status = 'late' then 1 else 0 end) as late,
+SUM(case when status = 'ontime' then 1 else 0 end) as ontime
+
+FROM (SELECT "early" as status, departments.name as department_name, clockings.*,shifts.grace_time, shifts.start_time FROM clockings
+INNER JOIN shift_days ON clockings.clock_date = shift_days.date 
+INNER JOIN shifts ON clockings.shift_id = shifts.id
+INNER JOIN employees on clockings.employee_id = employees.id
+INNER JOIN departments on employees.department_id = departments.id
+WHERE shift_days.shift_id = clockings.shift_id
+GROUP BY department_id,clock_date HAVING clockings.clock_in < shifts.start_time
+
+UNION ALL 
+
+SELECT "late" as status, departments.name as department_name, clockings.*, shifts.grace_time,shifts.start_time FROM clockings
+INNER JOIN shift_days ON clockings.clock_date = shift_days.date 
+INNER JOIN shifts ON clockings.shift_id = shifts.id
+INNER JOIN employees on clockings.employee_id = employees.id
+INNER JOIN departments on employees.department_id = departments.id
+WHERE shift_days.shift_id = clockings.shift_id
+GROUP BY department_id,clock_date HAVING clockings.clock_in > shifts.start_time
+  
+UNION ALL
+
+SELECT "ontime" as status, departments.name as department_name, clockings.*, shifts.grace_time, shifts.start_time FROM clockings
+INNER JOIN shift_days ON clockings.clock_date = shift_days.date 
+INNER JOIN shifts ON clockings.shift_id = shifts.id
+INNER JOIN employees on clockings.employee_id = employees.id
+INNER JOIN departments on employees.department_id = departments.id
+WHERE shift_days.shift_id = clockings.shift_id
+GROUP BY department_id,clock_date HAVING clockings.clock_in >= shifts.start_time AND clockings.clock_in <= shifts.grace_time
+
+     ) as xx GROUP BY department_name

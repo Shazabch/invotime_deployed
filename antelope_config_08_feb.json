@@ -1,0 +1,336 @@
+{
+  "antelope_standalone": true,
+  "antelope_brand_name": "invoTIME",
+  "antelope_custom_theme": false,
+  "antelope_theme_color_primary": "#196aff",
+  "antelope_theme_color_primary_text": "#256069",
+  "antelope_theme_color_secondary": "#595959",
+  "antelope_theme_color_secondary_text": "#ECEFF1",
+  "antelope_sidebar_menus": [
+    {
+      "title": "Dashboard",
+      "icon": "fa fa-chart-line",
+      "url": "overview",
+      "sub_menus": null
+    },
+    {
+      "title": "Employees",
+      "icon": "fa fa-user-tie",
+      "url": null,
+      "sub_menus": [
+        {
+          "title": "Active",
+          "icon": "",
+          "url": "employees"
+        },
+        {
+          "title": "Terminated",
+          "icon": "",
+          "url": "employees/terminated"
+        },
+        {
+          "title": "Resigned",
+          "icon": "",
+          "url": "employees/resigned"
+        }
+      ]
+    },
+    {
+      "title": "Shifts",
+      "icon": "fa fa-stopwatch",
+      "url": null,
+      "sub_menus": [
+        {
+          "title": "Active Shifts",
+          "icon": "fa fa-calendar-altx",
+          "url": "dashboard/table/active_shifts"
+        },
+        {
+          "title": "Inactive Shifts",
+          "icon": "fa fa-calendar-altx",
+          "url": "dashboard/table/inactive_shifts"
+        },
+        {
+          "title": "Shifts Assignment",
+          "icon": "fa fa-calendar-altx",
+          "url": "overview/shifts_assignment"
+        },
+        {
+          "title": "Shifts Calendar",
+          "icon": "fa fa-calendar-altx",
+          "url": "overview/shifts_calendar"
+        },
+        {
+          "title": "Default Shifts",
+          "icon": "fa fa-calendar-altx",
+          "url": "default_shifts"
+        }
+      ]
+    },
+    {
+      "title": "Attendance",
+      "icon": "fa fa-table",
+      "url": null,
+      "sub_menus": [
+        {
+          "title": "Attendance Sheet",
+          "icon": "",
+          "url": "overview/attendance_sheet",
+          "sub_menus": "overview/attendance_sheet"
+        },
+        {
+          "title": "Employee Report",
+          "icon": "",
+          "url": "overview/employee_report"
+        },
+        {
+          "title": "Employee Summary",
+          "icon": "",
+          "url": "summary/view"
+        },
+        {
+          "title": "BMI Summary",
+          "icon": "",
+          "url": "bmi_summary/view"
+        },
+        {
+          "title": "Weekly OT",
+          "icon": "",
+          "url": "weekly_ot/wview"
+        },
+        {
+          "title": "Monthly OT",
+          "icon": "",
+          "url": "monthly_ot/wview"
+        }
+      ]
+    },
+    {
+      "title": "OT Sheet",
+      "icon": "fa fa-history",
+      "url": "ot_days",
+      "sub_menus": null
+    },
+    {
+      "title": "Late Sheet",
+      "icon": "fa fa-history",
+      "url": "late_days",
+      "sub_menus": null
+    },
+    {
+      "title": "Late (Break) Sheet",
+      "icon": "fa fa-history",
+      "url": "late_break_days",
+      "sub_menus": null
+    },
+    {
+      "title": "Early Out Sheet",
+      "icon": "fa fa-history",
+      "url": "early_out_days",
+      "sub_menus": null
+    },
+    {
+      "title": "Export Summary",
+      "icon": "fa fa-file-export",
+      "url": "exports",
+      "sub_menus": null
+    },
+    {
+      "title": "Merit System",
+      "icon": "fa fa-desktop",
+      "url": null,
+      "sub_menus": [
+        {
+          "title": "Merit System",
+          "icon": "fa fa-calendar-altx",
+          "url": "merit_system"
+        },
+        {
+          "title": "Yearly report",
+          "icon": "fa fa-calendar-altx",
+          "url": "merit_system/yearly_report"
+        },
+        {
+          "title": "Export Merit Summary",
+          "icon": "fa fa-calendar-altx",
+          "url": "exports_merit_system"
+        }
+      ]
+    },
+    {
+      "title": "Clocking Data",
+      "icon": "fa fa-hourglass-half",
+      "url": null,
+      "sub_menus": [
+        {
+          "title": "View / Edit Clocking",
+          "icon": "fa fa-calendar-altx",
+          "url": "overview/manual_clocking_new"
+        },
+        {
+          "title": "Add Clocking",
+          "icon": "fa fa-calendar-altx",
+          "url": "dashboard/table/add_clocking"
+        }
+      ]
+    },
+    {
+      "title": "Reports",
+      "icon": "fa fa-clipboard-list",
+      "url": null,
+      "sub_menus": [
+        {
+          "title": "BMI Report",
+          "icon": "fa fa-calendar-altx",
+          "url": "BMI_report"
+        },
+        {
+          "title": "Attendance Status",
+          "icon": "fa fa-calendar-altx",
+          "url": "overview/att_report"
+        },
+        {
+          "title": "Late Frequency",
+          "icon": "fa fa-calendar-altx",
+          "url": "overview/late_frequency_report"
+        },
+        {
+          "title": "Late Frequency Comparison",
+          "icon": "fa fa-calendar-altx",
+          "url": "overview/late_frequency_comparison_report"
+        },
+        {
+          "title": "Time Logs",
+          "icon": "fa fa-calendar-altx",
+          "url": "overview/time_logs"
+        },
+        {
+          "title": "Daily Time Logs",
+          "icon": "fa fa-calendar-altx",
+          "url": "overview/time_logs_daily"
+        },
+        {
+          "title": "Temperature Logs",
+          "icon": "fa fa-calendar-altx",
+          "url": "overview/temperature_logs"
+        }
+      ]
+    },
+    {
+      "title": "Public Holidays",
+      "icon": "fa fa-gift",
+      "url": "overview/public_holidays",
+      "sub_menus": null
+    },
+    {
+      "title": "Departments",
+      "icon": "fa fa-user-tag",
+      "url": "dashboard/table/departments",
+      "sub_menus": null
+    },
+    {
+      "title": "Positions",
+      "icon": "fa fa-id-badge",
+      "url": "dashboard/table/positions",
+      "sub_menus": null
+    },
+    {
+      "title": "Logs",
+      "icon": "fa fa-clock-o",
+      "url": "logs",
+      "sub_menus": null
+    },
+    {
+      "title": "Settings",
+      "icon": "fa fa-cog",
+      "url": null,
+      "sub_menus": [
+        {
+          "title": "Employee Groups",
+          "icon": "fa fa-calendar-altx",
+          "url": "dashboard/table/employee_groups"
+        },
+        {
+          "title": "Companies",
+          "icon": "fa fa-calendar-altx",
+          "url": "dashboard/table/companies"
+        },
+        {
+          "title": "Outlets",
+          "icon": "fa fa-calendar-altx",
+          "url": "dashboard/table/outlets"
+        },
+        {
+          "title": "Devices",
+          "icon": "fa fa-calendar-altx",
+          "url": "dashboard/table/devices"
+        },
+        {
+          "title": "Roles",
+          "icon": "fa fa-calendar-altx",
+          "url": "dashboard/table/roles"
+        },
+        {
+          "title": "HOD Departments",
+          "icon": "la la-universal-access",
+          "url": "dashboard/table/hod_department_access"
+        },
+        {
+          "title": "Import Data",
+          "icon": "fa fa-calendar-altx",
+          "url": "import"
+        },
+        {
+          "title": "CSV Converter",
+          "icon": "fa fa-calendar-altx",
+          "url": "import/csv_converter"
+        },
+        {
+          "title": "OT Settings",
+          "icon": "fa fa-calendar-altx",
+          "url": "ot_settings"
+        },
+        {
+          "title": "Leaves",
+          "icon": "fa fa-calendar-altx",
+          "url": "dashboard/table/leaves"
+        },
+        {
+          "title": "Days Settings",
+          "icon": "fa fa-calendar-altx",
+          "url": "dashboard/table/days_settings"
+        },
+        {
+          "title": "Work Hour Settings",
+          "icon": "fa fa-calendar-altx",
+          "url": "dashboard/table/work_hours_settings"
+        },
+        {
+          "title": "Lateness Deduction Settings",
+          "icon": "fa fa-calendar-altx",
+          "url": "overview/lateness_deduction"
+        },
+        {
+          "title": "Late In Round Settings",
+          "icon": "fa fa-calendar-altx",
+          "url": "overview/round_late_in"
+        },
+        {
+          "title": "Termination Reasons",
+          "icon": "fa fa-calendar-altx",
+          "url": "dashboard/table/termination_reasons"
+        },
+        {
+          "title": "SQL Payroll Settings",
+          "icon": "fa fa-calendar-altx",
+          "url": "exports/sql_payroll_settings"
+        },
+        {
+          "title": "Merit Deduction Settings",
+          "icon": "fa fa-calendar-altx",
+          "url": "dashboard/table/merit_deduction_settings"
+        }
+      ]
+    }
+  ]
+}

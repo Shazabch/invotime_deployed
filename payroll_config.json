@@ -1,0 +1,158 @@
+{
+  "antelope_standalone": true,
+  "antelope_brand_name": "invoTIME Payroll",
+  "antelope_custom_theme": false,
+  "antelope_theme_color_primary": "#196aff",
+  "antelope_theme_color_primary_text": "#256069",
+  "antelope_theme_color_secondary": "#595959",
+  "antelope_theme_color_secondary_text": "#ECEFF1",
+  "antelope_sidebar_menus": [
+    {
+      "title": "Dashboard",
+      "icon": "fa fa-chart-line",
+      "url": "invocore_payroll",
+      "sub_menus": null
+    },
+    {
+      "title": "Employees",
+      "icon": "fa fa-user",
+      "url": null,
+      "sub_menus": [
+        {
+          "title": "Active",
+          "icon": "",
+          "url": "payroll_employees"
+          
+        },
+        {
+          "title": "Terminated",
+          "icon": "",
+          "url": "payroll_employees/terminated"
+          
+        },
+        {
+          "title": "Resigned",
+          "icon": "",
+          "url": "payroll_employees/resigned"
+          
+        }
+      ]
+    },
+    {
+      "title": "Payroll Management",
+      "icon": "fa fa-dollar",
+      "url": null,
+      "sub_menus": [
+        {
+          "title": "Process Payroll",
+          "icon": "fa fa-calendar-altx",
+          "url": "invocore_payroll/process_payroll"
+          
+        },
+        {
+          "title": "Calculator",
+          "icon": "fa fa-calendar-altx",
+          "url": "payroll/calculator"
+        },
+        {
+          "title": "Check",
+          "icon": "fa fa-calendar-altx",
+          "url": "payroll/report"
+        },
+        {
+          "title": "Approval",
+          "icon": "fa fa-calendar-altx",
+          "url": "payroll/approval"
+        }
+      ]
+    },
+    {
+      "title": "Reports",
+      "icon": "fa fa-clipboard-list",
+      "url": null,
+      "sub_menus": [
+        {
+          "title": "Payroll Summary Report",
+          "icon": "fa fa-calendar-altx",
+          "url": "payroll/summary_report"
+          
+        },
+        {
+          "title": "No Time Pay Off Report",
+          "icon": "fa fa-calendar-altx",
+          "url": "payroll/no_time_pay_off_report"
+          
+        },
+        {
+          "title": "Extra Earnings Report",
+          "icon": "fa fa-calendar-altx",
+          "url": "payroll/extra_earnings_report"
+          
+        },
+        {
+          "title": "Deductions Report",
+          "icon": "fa fa-calendar-altx",
+          "url": "payroll/deductions_report"
+          
+        },
+        {
+          "title": "Adjustment Report",
+          "icon": "fa fa-calendar-altx",
+          "url": "payroll/adjustment_report"
+          
+        },
+        {
+          "title": "Full Report",
+          "icon": "fa fa-calendar-altx",
+          "url": "payroll/full_report"
+          
+        },
+        {
+          "title": "Payroll Summary Custom.",
+          "icon": "fa fa-calendar-altx",
+          "url": "payroll/payroll_customized_summaries"
+          
+        },
+        {
+          "title": "Payroll Summary 1",
+          "icon": "fa fa-calendar-altx",
+          "url": "payroll/payroll_summary_1"
+          
+        },
+        {
+          "title": "Payroll Summary 2",
+          "icon": "fa fa-calendar-altx",
+          "url": "payroll/payroll_summary_2"
+          
+        },
+        {
+          "title": "Payroll Summary Group",
+          "icon": "fa fa-calendar-altx",
+          "url": "payroll/payroll_summary_group"
+          
+        }
+      ]
+    },
+    {
+      "title": "Settings",
+      "icon": "fa fa-gear",
+      "url": null,
+      "sub_menus": [
+        {
+          "title": "Roles",
+          "icon": "fa fa-calendar-altx",
+          "url": "invocore_payroll/table/roles_payroll"
+          
+        }
+      ]
+    },
+    {
+      "title": "First Time Setup",
+      "icon": "fa fa-cogs",
+      "url": "invocore_payroll/first_time_setup",
+      "sub_menus": null
+    }
+    
+
+  ]
+}

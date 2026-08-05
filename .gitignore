@@ -1,0 +1,40 @@
+# Archives & Backups
+*.zip
+*.tar
+*.tar.gz
+*.rar
+*.7z
+*.bak
+*backup*
+
+# Database dumps
+*.sql
+*.dump
+
+# Logs
+application/logs/
+*.log
+error_log
+
+# Uploads & generated
+/uploads/
+/qr_images/
+
+# Dependencies
+/vendor/
+/node_modules/
+
+# Secrets & live configs
+.env
+.env.*
+*.pem
+*.key
+
+invotime-399613-firebase-adminsdk-*.json
+
+# IDE & OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp

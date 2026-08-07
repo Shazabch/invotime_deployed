@@ -1,8 +1,12 @@
 RewriteEngine On
+RewriteBase /app/invotime/
+
+Options -Indexes
+Options -MultiViews
+
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule ^(.*)$ /app/invotime/index.php/$1 [L]
-
+RewriteRule ^(.*)$ index.php/$1 [L]
 
 php_value upload_max_filesize 3000M
 php_value post_max_size 3000M

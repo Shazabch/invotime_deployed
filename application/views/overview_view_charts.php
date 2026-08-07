@@ -512,6 +512,7 @@
 
       <div class="db-header-left">
         <h4 class="db-page-title">Dashboard Overview</h4>
+
         <form method="get" @submit.prevent="changeBranch" style="display:inline-flex;align-items:center;">
           <select class="db-branch-select form-control" v-model="selectedBranchId" @change="changeBranch">
             <option value="0">All Outlets</option>

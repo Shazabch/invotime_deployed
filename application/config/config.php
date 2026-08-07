@@ -16,8 +16,7 @@
 */
 //$config['base_url'] = 'http' . ((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on') ? 's' : '')
 //$config['base_url'] = 'https://invocore.com.my/pktpt/';
-// $config['base_url'] = 'http://localhost:8888/TMS/invotime/';
-$config['base_url'] = env('APP_URL', '');
+$config['base_url'] = 'https://invocore.com.my/app/invotime/';
 
 /*
 |--------------------------------------------------------------------------
@@ -129,17 +128,8 @@ $config['subclass_prefix'] = 'MY_';
 | DO NOT CHANGE THIS UNLESS YOU FULLY UNDERSTAND THE REPERCUSSIONS!!
 |
 */
+$config['permitted_uri_chars'] = 'a-z 0-9~%.:_\-';
 
-// Allow CLI requests
-$config['permitted_uri_chars'] = 'a-z 0-9~%.:_\-@\=,+';
-
-// For CLI, we need to adjust some settings
-if (php_sapi_name() === 'cli') {
-    // Disable CSRF for CLI
-    $config['csrf_protection'] = FALSE;
-    // Allow all URI characters in CLI
-    $config['permitted_uri_chars'] = 'a-z 0-9~%.:_\-@\=,+[]|';
-}
 
 /*
 |--------------------------------------------------------------------------
@@ -298,10 +288,10 @@ $config['sess_time_to_update']	= 300;
 |
 */
 $config['cookie_prefix']	= "pkt";
-$config['cookie_domain']	= "localhost";
+$config['cookie_domain']	= "";
 //$config['cookie_domain']	= ".invocore.com.my";
-$config['cookie_path']		= "/";
-$config['cookie_secure']	= FALSE;
+$config['cookie_path']		= "/app/invotime/";
+$config['cookie_secure']	= TRUE;
 
 /*
 |--------------------------------------------------------------------------

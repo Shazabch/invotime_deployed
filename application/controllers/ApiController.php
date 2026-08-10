@@ -483,11 +483,10 @@ class ApiController extends CI_Controller
                 $image_url = '';
                 if (!empty($_FILES['photo']['name'])) {
                     // AWS S3 Configuration
-                    $bucket     = env('AWS_BUCKET', 'invotime');
+                     $bucket     = env('AWS_BUCKET', 'invotime');
                     $region     = env('AWS_DEFAULT_REGION', 'ap-southeast-1');
                     $accessKey  = env('AWS_ACCESS_KEY_ID', '');
                     $secretKey  = env('AWS_SECRET_ACCESS_KEY', '');
-
                     // Generate unique file name and S3 key
                     $extension  = pathinfo($_FILES['photo']['name'], PATHINFO_EXTENSION);
                     $fileName   = 'clocking_' . time() . '_' . rand(1000, 9999) . '.' . $extension;

@@ -77,10 +77,10 @@ $query_builder = TRUE;
 
 $db['default'] = array(
 	'dsn'	=> '',
-	'hostname' => 'localhost',
-	'username' => 'root',
-	'password' => 'seanO!eweb3939',
-	'database' => 'invotime_db',
+	'hostname' => env('DB_HOST', 'localhost'),
+	'username' => env('DB_USER', 'root'),
+	'password' => env('DB_PASS', 'seanO!eweb3939'),
+	'database' => env('DB_NAME', 'invotime_db'),
 	'dbdriver' => 'mysqli',
 	'dbprefix' => '',
 	'pconnect' => FALSE,

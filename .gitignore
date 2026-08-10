@@ -30,6 +30,8 @@ error_log
 *.pem
 *.key
 
+.htaccess
+
 invotime-399613-firebase-adminsdk-*.json
 
 # IDE & OS

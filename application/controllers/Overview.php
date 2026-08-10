@@ -3079,7 +3079,7 @@ class Overview extends CI_Controller
 
         $result = $this->db->query("SELECT clockings_news.*, shifts.name as shift_name, devices.mac_address, devices.location, employees.first_name, employees.last_name, employees.special_id,employees.branch_id,branches.name as branch_name, branches1.name as branch_name_clocking FROM clockings_news INNER JOIN employees ON clockings_news.employee_id = employees.id INNER JOIN roles ON employees.role_id = roles.id INNER JOIN branches ON employees.branch_id = branches.id LEFT JOIN devices ON clockings_news.device_id = devices.device_id LEFT JOIN shifts ON clockings_news.shift_id = shifts.id LEFT JOIN branches branches1 on branches1.id = devices.branch_id  WHERE roles.exclude_from_system = 'no' AND clockings_news.deleted_at IS NULL AND $where_filter $where_date $where_department ORDER BY clockings_news.datetime DESC LIMIT $skip,$limit")->result_array();
 
-        $s3 = new S3Client([
+         $s3 = new S3Client([
             'version' => 'latest',
             'region' => env('AWS_DEFAULT_REGION', ''),
             'credentials' => [

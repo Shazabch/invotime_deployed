@@ -320,11 +320,10 @@ class Clocking_job_cron extends CI_Controller
      */
     private function upload_to_s3($image_path)
     {
-        $bucket     = env('AWS_BUCKET', 'invotime');
+         $bucket     = env('AWS_BUCKET', 'invotime');
         $region     = env('AWS_DEFAULT_REGION', 'ap-southeast-1');
         $accessKey  = env('AWS_ACCESS_KEY_ID', '');
         $secretKey  = env('AWS_SECRET_ACCESS_KEY', '');
-
         $s3Key      = 'clocking_images/' . basename($image_path);
 
         $s3 = new S3Client([

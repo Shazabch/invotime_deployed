@@ -290,9 +290,8 @@ $config['sess_time_to_update']	= 300;
 $config['cookie_prefix']	= "pkt";
 $config['cookie_domain']	= "";
 //$config['cookie_domain']	= ".invocore.com.my";
-$config['cookie_path']		= "/app/invotime/";
-$config['cookie_secure']	= TRUE;
-
+$config['cookie_path']		= env('APP_COOKIE_PATH', '/app/invotime/');
+$config['cookie_secure']	= env('APP_COOKIE_SECURE', true);
 /*
 |--------------------------------------------------------------------------
 | Global XSS Filtering

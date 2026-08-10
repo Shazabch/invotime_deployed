@@ -162,7 +162,7 @@
       "title": "Export V2",
       "icon": "fa fa-file-export",
       "url": "exports_async",
-      "visible_company_ids": [3],
+      "visible_company_ids": [3,286],
       "sub_menus": null
     },
     {
@@ -293,7 +293,7 @@
         {
           "title": "Month Locking",
           "icon": "fa fa-lock-altx",
-          "visible_company_ids": [3],
+          "visible_company_ids": [3,286],
           "hidden_company_ids": [],
           "url": "month_lock"
         },

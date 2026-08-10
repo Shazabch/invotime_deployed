@@ -16,7 +16,7 @@
 */
 //$config['base_url'] = 'http' . ((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on') ? 's' : '')
 //$config['base_url'] = 'https://invocore.com.my/pktpt/';
-$config['base_url'] = 'https://invocore.com.my/app/invotime/';
+$config['base_url'] = env('APP_URL', 'https://invocore.com.my/app/invotime/');
 
 /*
 |--------------------------------------------------------------------------

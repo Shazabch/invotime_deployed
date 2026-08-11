@@ -603,10 +603,10 @@ function calculate_summary_data($emp_id, $first_day, $last_day, $summary_type = 
             $value->total_time = calculate_total_hours($value->clock_in_1, $value->clock_out_1, $value->start_time, $value->early_ot_start, $value->early_ot_end, $value->search_date);
             // var_dump($value->total_time);
             if ($value->name == "") {
-                $value->name = "N/A";
+                $value->name = $obj->shift_name != "" ? $obj->shift_name : "N/A";
             }
             if ($value->code == "") {
-                $value->code = "N/A";
+                $value->code = $obj->shift_code != "" ? $obj->shift_code : "N/A";
             }
             $value->is_break = false;
 

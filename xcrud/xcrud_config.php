@@ -4,10 +4,10 @@ class Xcrud_config
     // default connection
 
     //public static $hi = ; // Your database name
-    public static $dbname = 'invotime_db'; // Your database name
-    public static $dbuser = 'root'; // Your database username
-    public static $dbpass = 'seanO!eweb3939'; // // Your database password
-    public static $dbhost = 'localhost'; // Your database host, 'localhost' is default.
+    public static $dbname; // Your database name
+    public static $dbuser; // Your database username
+    public static $dbpass; // // Your database password
+    public static $dbhost; // Your database host, 'localhost' is default.
 
 
     // theme and language
@@ -195,4 +195,11 @@ class Xcrud_config
 //        exit;
 //    }
 
+
 }
+Xcrud_config::$dbname = env('DB_NAME');
+Xcrud_config::$dbuser = env('DB_USER');
+Xcrud_config::$dbpass = env('DB_PASS');
+Xcrud_config::$dbhost = env('DB_HOST');
+
+

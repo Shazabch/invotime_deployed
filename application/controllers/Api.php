@@ -474,6 +474,8 @@ class Api extends CI_Controller
 		$response['success'] = true;
 		$response['data'] = [
 			'absenties' => $data["absent_days"],
+			'total_hours' => $data['total'],
+			'work_hours' => $data['work'],
 			'late_hours' => $data['lateness_time_deducted'],
 			'late_minutes' => beautiful_time_to_minutes($data['lateness_time_deducted']),
 			'paid_leaves' => $data["paid_leaves"],

@@ -9,6 +9,7 @@ class Payroll_api extends CI_Controller
 {
     private $_sql_data_cache = [];
     private $API_KEY = 'inv-T1m3-P@yr0ll-2026-s3cur3K3y!';
+     private $company_id = null;
 
     public function __construct()
     {
@@ -17,9 +18,10 @@ class Payroll_api extends CI_Controller
         require_once APPPATH . 'helpers/payroll_bulk_helper.php';
     }
 
-    /**
+ /**
      * Validate the Authorization: Bearer <key> header.
      * Returns true if valid, otherwise sends 401 and exits.
+     * Also sets $this->company_id from the token.
      */
     private function authenticate()
     {
@@ -29,10 +31,26 @@ class Payroll_api extends CI_Controller
             return false;
         }
         $token = substr($header, 7); // strip "Bearer "
-        if ($token !== $this->API_KEY) {
-            $this->response_json(['status' => 'error', 'message' => 'Invalid API key'], 401);
+        // match token from payroll_licenses table with status = 1 and expires_at > now()
+        $this->db->select('id, token, company_id, status, expires_at');
+        $query = $this->db->get_where('payroll_licenses', ['token' => $token, 'status' => 1]);
+
+        if ($query->num_rows() === 0) {
+            $this->response_json(['status' => 'error', 'message' => 'Invalid or inactive token'], 401);
             return false;
         }
+
+        $token_data = $query->row();
+
+        // Check expiry if set
+        if (!empty($token_data->expires_at) && strtotime($token_data->expires_at) < time()) {
+            $this->response_json(['status' => 'error', 'message' => 'Token has expired'], 401);
+            return false;
+        }
+
+        // Store company_id for use in queries
+        $this->company_id = (int)$token_data->company_id;
+
         return true;
     }
 
@@ -69,10 +87,10 @@ class Payroll_api extends CI_Controller
         }
 
         // Validate required fields
-        if (!isset($input['from_date']) || !isset($input['to_date']) || !isset($input['company_id'])) {
+        if (!isset($input['from_date']) || !isset($input['to_date'])) {
             $this->response_json(['error' => 'Missing required fields'], 400);
         }
-        $cid = $input['company_id'];
+        $cid = $this->company_id;
         // Parse dates
         $date1 = DateTime::createFromFormat('d/m/Y', $input['from_date']);
         $date2 = DateTime::createFromFormat('d/m/Y', $input['to_date']);

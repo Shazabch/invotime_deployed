@@ -3,903 +3,728 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 
 <style>
-  #export-summary-app[v-cloak] {
-    display: none;
-  }
-
-  #export-summary-app {
-    --primary-color: #00c5fb;
-    --primary-dark: #00a8d6;
-    --primary-deep: #3a55ed;
-    --success-color: #10b981;
-    --warning-color: #f59e0b;
-    --danger-color: #ef4444;
-    --info-color: #3b82f6;
-    --dark-bg: #1e293b;
-    --card-bg: #ffffff;
-    --border-color: #e7eaf0;
-    --text-primary: #0f172a;
-    --text-secondary: #64748b;
-    --text-muted: #94a3b8;
-    --surface: #f6f8fc;
-    --radius-sm: 10px;
-    --radius-md: 14px;
-    --radius-lg: 20px;
-    --radius-xl: 26px;
-    --shadow-sm: 0 1px 2px 0 rgba(15, 23, 42, 0.04);
-    --shadow-md: 0 6px 16px -4px rgba(15, 23, 42, 0.08);
-    --shadow-lg: 0 16px 32px -10px rgba(15, 23, 42, 0.12);
-    --shadow-xl: 0 24px 48px -12px rgba(15, 23, 42, 0.18);
-    background: var(--surface) !important;
-    border-radius: 0;
-    padding-bottom: 0;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    color: var(--text-primary);
-  }
-
-  /* ===== Keyframes ===== */
-  @keyframes bounce {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-8px); }
-  }
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.55; }
-  }
-  @keyframes slideIn {
-    from { opacity: 0; transform: translateY(16px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
-  @keyframes shimmer {
-    0% { background-position: -300px 0; }
-    100% { background-position: 300px 0; }
-  }
-  @keyframes dotPulse {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5); }
-    50% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
-  }
-
-  /* ===== Layout shells ===== */
-  #export-summary-app .page-content-wrapperx {
-    padding: 0.5rem 1.25rem 2.5rem;
-  }
-
-  #export-summary-app .containerx {
-    max-width: 100%;
-    margin: 0 auto;
-  }
-
-  /* ===== Header ===== */
-  #export-summary-app .modern-page-header {
-    position: relative;
-    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-deep) 100%);
-    color: white;
-    padding: 2.25rem 2.5rem;
-    margin: 14px 0 1.5rem;
-    border-radius: var(--radius-xl);
-    box-shadow: var(--shadow-xl);
-    overflow: hidden;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1.5rem;
-  }
-
-  #export-summary-app .modern-page-header::before {
-    content: '';
-    position: absolute;
-    top: -60px;
-    right: -60px;
-    width: 220px;
-    height: 220px;
-    background: rgba(255, 255, 255, 0.12);
-    border-radius: 50%;
-  }
-
-  #export-summary-app .modern-page-header::after {
-    content: '';
-    position: absolute;
-    bottom: -80px;
-    right: 120px;
-    width: 160px;
-    height: 160px;
-    background: rgba(255, 255, 255, 0.08);
-    border-radius: 50%;
-  }
-
-  #export-summary-app .header-text-block {
-    position: relative;
-    z-index: 1;
-  }
-
-  #export-summary-app .modern-page-header h1 {
-    font-size: 1.85rem;
-    font-weight: 800;
-    margin: 0 0 0.4rem 0;
-    display: flex;
-    align-items: center;
-    gap: 0.85rem;
-    letter-spacing: -0.01em;
-  }
-
-  #export-summary-app .modern-page-header h1 i {
-    font-size: 1.6rem;
-    width: 48px;
-    height: 48px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(255, 255, 255, 0.18);
-    border-radius: 14px;
-    animation: bounce 2.4s ease-in-out infinite;
-  }
-
-  #export-summary-app .modern-page-header p {
-    opacity: 0.92;
-    margin: 0;
-    font-size: 0.95rem;
-    font-weight: 400;
-  }
-
-  #export-summary-app .header-pills {
-    position: relative;
-    z-index: 1;
-    display: flex;
-    gap: 0.75rem;
-    flex-wrap: wrap;
-  }
-
-  #export-summary-app .header-pill {
-    background: rgba(255, 255, 255, 0.16);
-    border: 1px solid rgba(255, 255, 255, 0.25);
-    backdrop-filter: blur(6px);
-    border-radius: 14px;
-    padding: 0.65rem 1.1rem;
-    text-align: center;
-    min-width: 92px;
-  }
-
-  #export-summary-app .header-pill .pill-num {
-    font-size: 1.35rem;
-    font-weight: 800;
-    line-height: 1.1;
-  }
-
-  #export-summary-app .header-pill .pill-label {
-    font-size: 0.68rem;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    opacity: 0.85;
-    margin-top: 2px;
-  }
-
-  /* ===== Cards ===== */
-  #export-summary-app .modern-card {
-    background: var(--card-bg);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-md);
-    border: 1px solid var(--border-color);
-    margin: 0 0 1.5rem;
-    overflow: hidden;
-    animation: slideIn 0.35s ease-out;
-    transition: box-shadow 0.25s ease, transform 0.25s ease;
-  }
-
-  #export-summary-app .modern-card.is-hoverable:hover {
-    box-shadow: var(--shadow-lg);
-  }
-
-  #export-summary-app .modern-card-header {
-    padding: 1.15rem 1.5rem;
-    border-bottom: 1px solid var(--border-color);
-    background: linear-gradient(135deg, #fbfcfe 0%, #f3f6fb 100%);
-    display: flex;
-    align-items: center;
-    gap: 0.9rem;
-  }
-
-  #export-summary-app .modern-card-header .header-icon-badge {
-    width: 38px;
-    height: 38px;
-    border-radius: 11px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-deep) 100%);
-    color: white;
-    flex-shrink: 0;
-  }
-
-  #export-summary-app .modern-card-header .header-icon-badge i {
-    font-size: 1rem;
-  }
-
-  #export-summary-app .modern-card-header h3 {
-    margin: 0;
-    font-size: 1.08rem;
-    font-weight: 700;
-    color: var(--text-primary);
-    letter-spacing: -0.01em;
-  }
-
-  #export-summary-app .modern-card-header .header-sub {
-    font-size: 0.78rem;
-    color: var(--text-secondary);
-    font-weight: 400;
-    margin-top: 1px;
-  }
-
-  #export-summary-app .modern-card-header.is-clickable {
-    cursor: pointer;
-    user-select: none;
-  }
-
-  #export-summary-app .modern-card-header.is-clickable:hover {
-    background: linear-gradient(135deg, #f4f7fb 0%, #eef2f8 100%);
-  }
-
-  #export-summary-app .chevron-toggle {
-    font-size: 1.05rem;
-    color: var(--text-muted);
-    transition: transform 0.25s ease;
-  }
-
-  #export-summary-app .modern-card-body {
-    padding: 1.75rem;
-  }
-
-  /* ===== Filter panel ===== */
-  #export-summary-app .filter-panel {
-    padding: 1.25rem;
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
-    background: #fff;
-    height: 100%;
-  }
-
-  #export-summary-app .filter-panel.is-tinted {
-    background: var(--surface);
-  }
-
-  #export-summary-app .panel-eyebrow {
-    font-size: 0.72rem;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--text-secondary);
-    font-weight: 700;
-    margin-bottom: 1rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-
-  #export-summary-app .panel-eyebrow i {
-    color: var(--primary-color);
-  }
-
-  #export-summary-app .modern-form-group {
-    margin-bottom: 1.35rem;
-  }
-
-  #export-summary-app .modern-form-group:last-child {
-    margin-bottom: 0;
-  }
-
-  #export-summary-app .modern-label {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin-bottom: 0.5rem;
-    font-size: 0.78rem;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-  }
-
-  #export-summary-app .modern-label i {
-    color: var(--primary-color);
-    font-size: 0.95rem;
-  }
-
-  #export-summary-app .modern-input,
-  #export-summary-app .modern-select {
-    width: 100%;
-    padding: 0.7rem 0.95rem;
-    border: 1.5px solid var(--border-color);
-    border-radius: var(--radius-sm);
-    font-size: 0.92rem;
-    font-family: inherit;
-    transition: all 0.2s ease;
-    background: white;
-    color: var(--text-primary);
-  }
-
-  #export-summary-app .modern-input:focus,
-  #export-summary-app .modern-select:focus {
-    outline: none;
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 4px rgba(0, 197, 251, 0.12);
-  }
-
-  #export-summary-app .select2-container .select2-selection--multiple,
-  #export-summary-app .select2-container .select2-selection--single {
-    border: 1.5px solid var(--border-color) !important;
-    border-radius: var(--radius-sm) !important;
-    min-height: 42px !important;
-    padding: 4px 8px !important;
-  }
-
-  #export-summary-app .select2-container--default.select2-container--focus .select2-selection--multiple,
-  #export-summary-app .select2-container--default.select2-container--open .select2-selection--single {
-    border-color: var(--primary-color) !important;
-    box-shadow: 0 0 0 4px rgba(0, 197, 251, 0.12) !important;
-  }
-
-  #export-summary-app .select2-dropdown {
-    border: 1px solid var(--border-color) !important;
-    border-radius: 12px !important;
-    box-shadow: var(--shadow-lg);
-    overflow: hidden;
-  }
-
-  #export-summary-app .flatpickr-input {
-    cursor: pointer;
-    background: #fff;
-  }
-
-  #export-summary-app .flatpickr-calendar {
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-xl);
-  }
-
-  #export-summary-app .flatpickr-day.selected,
-  #export-summary-app .flatpickr-day.startRange,
-  #export-summary-app .flatpickr-day.endRange {
-    background: var(--primary-color);
-    border-color: var(--primary-color);
-  }
-
-  /* ===== Buttons ===== */
-  #export-summary-app .modern-btn {
-    padding: 0.85rem 1.9rem;
-    border: none;
-    border-radius: var(--radius-sm);
-    font-weight: 600;
-    font-size: 0.92rem;
-    font-family: inherit;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.65rem;
-    letter-spacing: 0.01em;
-    box-shadow: var(--shadow-sm);
-  }
-
-  #export-summary-app .modern-btn:hover {
-    transform: translateY(-1px);
-    box-shadow: var(--shadow-md);
-  }
-
-  #export-summary-app .modern-btn:active {
-    transform: translateY(0);
-  }
-
-  #export-summary-app .modern-btn i {
-    font-size: 1rem;
-  }
-
-  #export-summary-app .modern-btn-primary {
-    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
-    color: white;
-  }
-
-  #export-summary-app .modern-btn-primary:hover {
-    background: linear-gradient(135deg, var(--primary-dark) 0%, #0087ad 100%);
-  }
-
-  #export-summary-app .modern-btn-success {
-    background: linear-gradient(135deg, var(--success-color) 0%, #059669 100%);
-    color: white;
-  }
-
-  #export-summary-app .modern-btn-danger {
-    background: linear-gradient(135deg, var(--danger-color) 0%, #dc2626 100%);
-    color: white;
-  }
-
-  #export-summary-app .modern-btn-info {
-    background: linear-gradient(135deg, var(--info-color) 0%, #2563eb 100%);
-    color: white;
-  }
-
-  #export-summary-app .modern-btn-info:hover {
-    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-  }
-
-  #export-summary-app .modern-btn-outline {
-    background: white;
-    border: 1.5px solid var(--border-color);
-    color: var(--text-secondary);
-  }
-
-  #export-summary-app .modern-btn-outline:hover {
-    border-color: var(--primary-color);
-    color: var(--primary-dark);
-  }
-
-  #export-summary-app .modern-btn:disabled {
-    opacity: 0.55;
-    cursor: not-allowed;
-    transform: none;
-  }
-
-  #export-summary-app .modern-btn-sm {
-    padding: 0.55rem 1.05rem;
-    font-size: 0.78rem;
-    border-radius: 9px;
-  }
-
-  #export-summary-app .submit-row {
-    margin-top: 1.75rem;
-    display: flex;
-    justify-content: center;
-  }
-
-  #export-summary-app .modern-btn-submit {
-    padding: 1rem 2.75rem;
-    font-size: 0.95rem;
-    border-radius: 14px;
-  }
-
-  /* ===== Alerts ===== */
-  #export-summary-app .modern-alert {
-    padding: 1rem 1.35rem;
-    border-radius: var(--radius-sm);
-    margin-bottom: 1.25rem;
-    display: flex;
-    align-items: flex-start;
-    gap: 0.85rem;
-    animation: slideIn 0.3s ease-out;
-    font-size: 0.9rem;
-    line-height: 1.45;
-  }
-
-  #export-summary-app .modern-alert i {
-    font-size: 1.2rem;
-    margin-top: 1px;
-  }
-
-  #export-summary-app .modern-alert-info {
-    background: #e8f1ff;
-    color: #1e40af;
-    border-left: 4px solid var(--info-color);
-  }
-
-  #export-summary-app .modern-alert-success {
-    background: #e7faf1;
-    color: #065f46;
-    border-left: 4px solid var(--success-color);
-  }
-
-  #export-summary-app .modern-alert-danger {
-    background: #fdecec;
-    color: #991b1b;
-    border-left: 4px solid var(--danger-color);
-  }
-
-  /* ===== Badges ===== */
-  #export-summary-app .modern-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.45rem;
-    padding: 0.4rem 0.85rem;
-    border-radius: 999px;
-    font-size: 0.74rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    white-space: nowrap;
-  }
-
-  #export-summary-app .badge-pending {
-    background: #fef3c7;
-    color: #92400e;
-  }
-
-  #export-summary-app .badge-processing {
-    background: #dbeafe;
-    color: #1e40af;
-  }
-
-  #export-summary-app .badge-processing i {
-    animation: spin 1s linear infinite;
-  }
-
-  #export-summary-app .badge-completed {
-    background: #d1fae5;
-    color: #065f46;
-  }
-
-  #export-summary-app .badge-failed {
-    background: #fee2e2;
-    color: #991b1b;
-  }
-
-  #export-summary-app .live-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--success-color);
-    display: inline-block;
-    animation: dotPulse 1.6s infinite;
-  }
-
-  /* ===== Quick stats strip ===== */
-  #export-summary-app .stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-  }
-
-  #export-summary-app .stat-card {
-    background: white;
-    border: 1px solid var(--border-color);
-    color: var(--text-primary);
-    padding: 1.25rem 1.4rem;
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-sm);
-    transition: transform 0.25s ease, box-shadow 0.25s ease;
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-  }
-
-  #export-summary-app .stat-card:hover {
-    transform: translateY(-3px);
-    box-shadow: var(--shadow-md);
-  }
-
-  #export-summary-app .stat-card .stat-icon {
-    width: 46px;
-    height: 46px;
-    border-radius: 13px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.15rem;
-    flex-shrink: 0;
-    color: white;
-  }
-
-  #export-summary-app .stat-icon-total { background: linear-gradient(135deg, #64748b, #475569); }
-  #export-summary-app .stat-icon-pending { background: linear-gradient(135deg, #f59e0b, #d97706); }
-  #export-summary-app .stat-icon-processing { background: linear-gradient(135deg, #3b82f6, #2563eb); }
-  #export-summary-app .stat-icon-completed { background: linear-gradient(135deg, #10b981, #059669); }
-  #export-summary-app .stat-icon-failed { background: linear-gradient(135deg, #ef4444, #dc2626); }
-
-  #export-summary-app .stat-card h4 {
-    font-size: 0.7rem;
-    color: var(--text-secondary);
-    margin: 0 0 0.15rem 0;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    font-weight: 700;
-  }
-
-  #export-summary-app .stat-card p {
-    font-size: 1.55rem;
-    font-weight: 800;
-    margin: 0;
-    line-height: 1;
-    color: var(--text-primary);
-  }
-
-  /* ===== Progress card ===== */
-  #export-summary-app .progress-card {
-    border-left: 4px solid var(--primary-color);
-    background: linear-gradient(135deg, rgba(0, 197, 251, 0.05) 0%, rgba(58, 85, 237, 0.04) 100%);
-  }
-
-  #export-summary-app .progress-card .modern-card-header i.spin-icon {
-    color: var(--primary-color);
-    animation: spin 1s linear infinite;
-  }
-
-  #export-summary-app .progress-bar-track {
-    width: 100%;
-    height: 22px;
-    background: #e9edf3;
-    border-radius: 999px;
-    overflow: hidden;
-    border: 1px solid var(--border-color);
-  }
-
-  #export-summary-app .progress-bar-fill {
-    height: 100%;
-    background: linear-gradient(90deg, var(--primary-color), var(--primary-dark));
-    transition: width 0.4s ease;
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    padding-right: 8px;
-    min-width: 2%;
-  }
-
-  #export-summary-app .progress-bar-fill span {
-    font-size: 0.7rem;
-    color: white;
-    font-weight: 700;
-  }
-
-  #export-summary-app .progress-row-top {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 0.5rem;
-    font-size: 0.8rem;
-  }
-
-  #export-summary-app .progress-row-top .label {
-    color: var(--text-secondary);
-  }
-
-  #export-summary-app .progress-row-top .pct {
-    color: var(--primary-dark);
-    font-weight: 700;
-  }
-
-  #export-summary-app .step-track {
-    display: flex;
-    gap: 5px;
-  }
-
-  #export-summary-app .step-segment {
-    flex: 1;
-    height: 5px;
-    background: #e2e8f0;
-    border-radius: 3px;
-    overflow: hidden;
-  }
-
-  #export-summary-app .step-segment .fill {
-    height: 100%;
-    background: var(--primary-color);
-    border-radius: 3px;
-  }
-
-  #export-summary-app .progress-footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    margin-top: 0.25rem;
-  }
-
-  #export-summary-app .progress-footer .msg {
-    font-size: 0.85rem;
-    color: var(--text-primary);
-  }
-
-  #export-summary-app .progress-footer .timing {
-    font-size: 0.78rem;
-    color: var(--text-secondary);
-  }
-
-  #export-summary-app .recovery-box {
-    margin-top: 1rem;
-    padding: 0.85rem 1rem;
-    background: rgba(245, 158, 11, 0.08);
-    border-left: 3px solid var(--warning-color);
-    border-radius: 10px;
-  }
-
-  #export-summary-app .recovery-box .line {
-    font-size: 0.78rem;
-    margin-bottom: 0.35rem;
-  }
-
-  #export-summary-app .recovery-box .line:last-child {
-    margin-bottom: 0;
-  }
-
-  #export-summary-app .recovery-box .line.resume { color: #b45309; }
-  #export-summary-app .recovery-box .line.fail { color: #dc2626; }
-
-  /* ===== Jobs list (card-based, replaces dense table for readability) ===== */
-  #export-summary-app .jobs-toolbar {
-    margin-left: auto;
-    display: flex;
-    gap: 0.65rem;
-    flex-wrap: wrap;
-  }
-
-  #export-summary-app .jobs-grid {
-    display: block;
-    /* grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); */
-    gap: 1rem;
-    padding: 1.5rem;
-  }
-
-  #export-summary-app .job-card {
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
-    margin-bottom: 1rem;
-    background: #fff;
-    padding: 1.1rem 1.25rem;
-    transition: box-shadow 0.2s ease, transform 0.2s ease;
-    border-left: 4px solid var(--text-muted);
-    animation: fadeIn 0.3s ease-out;
-  }
-
-  #export-summary-app .job-card:hover {
-    box-shadow: var(--shadow-md);
-    transform: translateY(-2px);
-  }
-
-  #export-summary-app .job-card.accent-pending { border-left-color: var(--warning-color); }
-  #export-summary-app .job-card.accent-processing { border-left-color: var(--info-color); }
-  #export-summary-app .job-card.accent-completed { border-left-color: var(--success-color); }
-  #export-summary-app .job-card.accent-failed { border-left-color: var(--danger-color); }
-
-  #export-summary-app .job-card-top {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 0.75rem;
-    margin-bottom: 0.65rem;
-  }
-
-  #export-summary-app .job-type-name {
-    font-weight: 700;
-    font-size: 0.98rem;
-    color: var(--text-primary);
-  }
-
-  #export-summary-app .job-period {
-    font-size: 0.83rem;
-    color: var(--text-secondary);
-    display: flex;
-    align-items: center;
-    gap: 0.35rem;
-    margin-bottom: 0.85rem;
-  }
-
-  #export-summary-app .job-actions {
-    display: flex;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-  }
-
-  #export-summary-app .empty-state {
-    text-align: center;
-    padding: 3.5rem 1rem;
-    color: var(--text-secondary);
-  }
-
-  #export-summary-app .empty-state .empty-icon {
-    width: 84px;
-    height: 84px;
-    margin: 0 auto 1rem;
-    border-radius: 50%;
-    background: var(--surface);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  #export-summary-app .empty-state .empty-icon i {
-    font-size: 2.25rem;
-    opacity: 0.4;
-    color: var(--text-muted);
-  }
-
-  #export-summary-app .empty-state p {
-    font-size: 1rem;
-    margin: 0;
-    font-weight: 500;
-  }
-
-  #export-summary-app .empty-state span {
-    font-size: 0.85rem;
-    color: var(--text-muted);
-  }
-
-  #export-summary-app .modern-btn-warning {
-    background: linear-gradient(135deg, var(--warning-color) 0%, #d97706 100%);
-    color: white;
-  }
-
-  #export-summary-app .modern-btn-warning:hover {
-    background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
-  }
-
-  #export-summary-app .modern-btn-violet {
-    background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
-    color: white;
-  }
-
-  #export-summary-app .modern-btn-violet:hover {
-    background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%);
-  }
-
-  #export-summary-app .modern-btn:hover {
-    transform: translateY(-2px) scale(1.015);
-  }
-
-  #export-summary-app .modern-btn-primary:hover { box-shadow: 0 10px 22px -6px rgba(0, 197, 251, 0.45); }
-  #export-summary-app .modern-btn-success:hover { box-shadow: 0 10px 22px -6px rgba(16, 185, 129, 0.4); }
-  #export-summary-app .modern-btn-danger:hover { box-shadow: 0 10px 22px -6px rgba(239, 68, 68, 0.4); }
-  #export-summary-app .modern-btn-info:hover { box-shadow: 0 10px 22px -6px rgba(59, 130, 246, 0.4); }
-  #export-summary-app .modern-btn-warning:hover { box-shadow: 0 10px 22px -6px rgba(245, 158, 11, 0.4); }
-  #export-summary-app .modern-btn-violet:hover { box-shadow: 0 10px 22px -6px rgba(139, 92, 246, 0.4); }
-
-  /* SweetAlert2 theming (renders at document root, kept unscoped on purpose) */
-  .swal2-popup.esa-swal-popup {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    border-radius: 20px;
-  }
-
-  .swal2-popup.esa-swal-popup .swal2-title {
-    font-weight: 700;
-    font-size: 1.2rem;
-    color: #0f172a;
-  }
-
-  .swal2-popup.esa-swal-popup .swal2-html-container {
-    font-size: 0.92rem;
-    color: #64748b;
-  }
-
-  .swal2-popup.esa-swal-popup .swal2-confirm,
-  .swal2-popup.esa-swal-popup .swal2-cancel,
-  .swal2-popup.esa-swal-popup .swal2-deny {
-    border-radius: 10px !important;
-    font-weight: 600 !important;
-    padding: 0.65rem 1.5rem !important;
-    box-shadow: none !important;
-  }
-
-  .swal2-toast.esa-swal-toast {
-    border-radius: 14px;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  }
-
-  @media (max-width: 576px) {
-    #export-summary-app .modern-page-header {
-      padding: 1.75rem;
-    }
-    #export-summary-app .jobs-grid {
-      grid-template-columns: 1fr;
-      padding: 1rem;
-    }
-    #export-summary-app .modern-card-body {
-      padding: 1.1rem;
-    }
-  }
+/* ============================================================
+   ENHANCED EXPORT DASHBOARD
+   Layout/readability styling only. Vue/PHP/JS logic preserved.
+   ============================================================ */
+#export-summary-app {
+  --primary-color: #08b9ef;
+  --primary-dark: #0099d0;
+  --primary-deep: #3857e8;
+  --success-color: #10b981;
+  --warning-color: #f59e0b;
+  --danger-color: #ef4444;
+  --info-color: #3b82f6;
+  --surface: #f4f7fb;
+  --surface-2: #eef3f9;
+  --card-bg: #ffffff;
+  --border-color: #dfe6ef;
+  --text-primary: #10233f;
+  --text-secondary: #5d6f86;
+  --text-muted: #8493a7;
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-lg: 22px;
+  --radius-xl: 28px;
+  --shadow-sm: 0 3px 12px rgba(24, 43, 72, .06);
+  --shadow-md: 0 10px 30px rgba(24, 43, 72, .08);
+  --shadow-lg: 0 18px 45px rgba(24, 43, 72, .12);
+  display: block;
+  background:
+    radial-gradient(circle at 92% 4%, rgba(8,185,239,.10), transparent 28%),
+    linear-gradient(180deg, #f7faff 0%, var(--surface) 42%, #eef3f8 100%) !important;
+  color: var(--text-primary);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 17px !important;
+  line-height: 1.55 !important;
+  min-height: 100%;
+  padding-bottom: 40px;
+}
+
+#export-summary-app[v-cloak] { display: none; }
+#export-summary-app .page-content-wrapperx { padding: 0 1.5rem 2.5rem; }
+#export-summary-app .containerx { max-width: 100%; margin: 0 auto; }
+
+/* ===== Hero ===== */
+#export-summary-app .modern-page-header {
+  position: relative;
+  margin: 14px 1.5rem 1.5rem;
+  padding: 2.35rem 2.5rem;
+  min-height: 175px;
+  border-radius: 0 0 30px 30px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+  color: #fff;
+  background:
+    radial-gradient(circle at 90% 10%, rgba(255,255,255,.20), transparent 24%),
+    linear-gradient(120deg, #04b9e9 0%, #138fe6 48%, #3b55e9 100%);
+  box-shadow: 0 20px 45px rgba(32, 86, 200, .22);
+}
+#export-summary-app .modern-page-header::before {
+  content: '';
+  position: absolute;
+  width: 280px;
+  height: 280px;
+  right: -85px;
+  top: -150px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.12);
+}
+#export-summary-app .modern-page-header::after {
+  content: '';
+  position: absolute;
+  width: 210px;
+  height: 210px;
+  right: 230px;
+  bottom: -165px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.08);
+}
+#export-summary-app .header-text-block,
+#export-summary-app .header-pills { position: relative; z-index: 2; }
+#export-summary-app .header-text-block { flex: 1; min-width: 300px; }
+#export-summary-app .modern-page-header h1 {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin: 0 0 .6rem;
+  font-size: 2.5rem !important;
+  line-height: 1.2 !important;
+  font-weight: 800;
+  letter-spacing: -.025em;
+}
+#export-summary-app .modern-page-header h1 i {
+  width: 58px;
+  height: 58px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 17px;
+  background: rgba(255,255,255,.17);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.16);
+  font-size: 2rem !important;
+}
+#export-summary-app .modern-page-header p {
+  margin: 0;
+  opacity: .94;
+  font-size: 1.15rem !important;
+  line-height: 1.55;
+}
+#export-summary-app .header-pills {
+  display: flex;
+  gap: .8rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+#export-summary-app .header-pill {
+  min-width: 130px;
+  padding: 1rem 1.25rem;
+  text-align: left;
+  border: 1px solid rgba(255,255,255,.24);
+  border-radius: 17px;
+  background: rgba(255,255,255,.14);
+  backdrop-filter: blur(10px);
+}
+#export-summary-app .header-pill .pill-num {
+  font-size: 1.85rem !important;
+  font-weight: 800;
+  line-height: 1.1;
+}
+#export-summary-app .header-pill .pill-label {
+  margin-top: .35rem;
+  font-size: .82rem !important;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  opacity: .82;
+}
+
+/* ===== KPI strip ===== */
+#export-summary-app .stats-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 1rem;
+  margin: 0 0 1.5rem;
+}
+#export-summary-app .stat-card {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  min-height: 110px;
+  padding: 1.25rem 1.35rem;
+  background: rgba(255,255,255,.96);
+  border: 1px solid var(--border-color);
+  border-radius: 18px;
+  box-shadow: var(--shadow-sm);
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+#export-summary-app .stat-card::after {
+  content: '';
+  position: absolute;
+  width: 75px;
+  height: 75px;
+  right: -35px;
+  bottom: -35px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: .035;
+}
+#export-summary-app .stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+}
+#export-summary-app .stat-card .stat-icon {
+  width: 55px;
+  height: 55px;
+  flex: 0 0 55px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16px;
+  color: #fff;
+  font-size: 1.4rem !important;
+}
+#export-summary-app .stat-icon-total { background: linear-gradient(135deg,#66758a,#40536c); }
+#export-summary-app .stat-icon-pending { background: linear-gradient(135deg,#ffb11b,#ee8d00); }
+#export-summary-app .stat-icon-processing { background: linear-gradient(135deg,#4388f6,#2866e9); }
+#export-summary-app .stat-icon-completed { background: linear-gradient(135deg,#18c58e,#08a977); }
+#export-summary-app .stat-icon-failed { background: linear-gradient(135deg,#ff5151,#e92632); }
+#export-summary-app .stat-card h4 {
+  margin: 0 0 .18rem;
+  font-size: .82rem !important;
+  color: var(--text-secondary);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+#export-summary-app .stat-card p {
+  margin: 0;
+  font-size: 2rem !important;
+  line-height: 1;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+/* ===== Common cards ===== */
+#export-summary-app .modern-card {
+  margin: 0 0 1.5rem;
+  overflow: hidden;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  animation: slideIn .35s ease-out;
+}
+#export-summary-app .modern-card.is-hoverable:hover { box-shadow: var(--shadow-lg); }
+#export-summary-app .modern-card-header {
+  min-height: 78px;
+  padding: 1.1rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: linear-gradient(180deg,#fff 0%,#f7faff 100%);
+  border-bottom: 1px solid var(--border-color);
+}
+#export-summary-app .modern-card-header .header-icon-badge {
+  width: 48px;
+  height: 48px;
+  flex: 0 0 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  color: #fff;
+  background: linear-gradient(135deg,var(--primary-color),var(--primary-deep));
+  box-shadow: 0 8px 18px rgba(8,185,239,.18);
+}
+#export-summary-app .modern-card-header .header-icon-badge i { font-size: 1.25rem !important; }
+#export-summary-app .modern-card-header h3 {
+  margin: 0;
+  font-size: 1.38rem !important;
+  line-height: 1.3;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+#export-summary-app .modern-card-header .header-sub {
+  margin-top: .2rem;
+  color: var(--text-secondary);
+  font-size: .98rem !important;
+  line-height: 1.4;
+}
+#export-summary-app .modern-card-body { padding: 1.7rem !important; }
+#export-summary-app .chevron-toggle {
+  font-size: 1.15rem !important;
+  color: var(--text-muted);
+}
+
+/* ===== Export workspace ===== */
+#export-summary-app .export-workspace {
+  background: linear-gradient(180deg,#ffffff 0%,#fbfdff 100%);
+}
+#export-summary-app .workspace-intro {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) auto;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.35rem;
+  padding: 1rem 1.2rem;
+  border: 1px solid #dbe8f5;
+  border-radius: 16px;
+  background: linear-gradient(90deg,#f1faff,#f6f8ff);
+}
+#export-summary-app .workspace-intro strong {
+  display: block;
+  font-size: 1.05rem !important;
+  margin-bottom: .2rem;
+}
+#export-summary-app .workspace-intro span {
+  color: var(--text-secondary);
+  font-size: .94rem !important;
+}
+#export-summary-app .workspace-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+  padding: .55rem .85rem;
+  border-radius: 999px;
+  background: #e9f8ff;
+  color: #007ba9;
+  font-size: .86rem !important;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+/* Form panels */
+#export-summary-app .filter-panel {
+  height: 100%;
+  padding: 1.45rem;
+  border: 1px solid var(--border-color);
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 4px 16px rgba(35,57,90,.045);
+}
+#export-summary-app .filter-panel.is-tinted {
+  background: linear-gradient(145deg,#f6f9fd 0%,#edf3f9 100%);
+}
+#export-summary-app .panel-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: .55rem;
+  margin-bottom: 1.25rem;
+  color: #48627f;
+  font-size: .9rem !important;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .075em;
+}
+#export-summary-app .panel-eyebrow i { color: var(--primary-dark); }
+#export-summary-app .modern-form-group { margin-bottom: 1.35rem; }
+#export-summary-app .modern-form-group:last-child { margin-bottom: 0; }
+#export-summary-app .modern-label {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  margin-bottom: .6rem;
+  color: var(--text-primary);
+  font-size: 1rem !important;
+  line-height: 1.4;
+  font-weight: 800;
+  letter-spacing: .015em;
+}
+#export-summary-app .modern-label i {
+  color: var(--primary-dark);
+  font-size: 1.05rem !important;
+}
+#export-summary-app .modern-input,
+#export-summary-app .modern-select {
+  width: 100%;
+  min-height: 56px;
+  padding: .85rem 1rem;
+  border: 1.5px solid #d6e0eb;
+  border-radius: 13px;
+  background: #fff;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 1.05rem !important;
+  line-height: 1.45;
+  transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
+}
+#export-summary-app .modern-input:hover,
+#export-summary-app .modern-select:hover {
+  border-color: #b9c9db;
+}
+#export-summary-app .modern-input:focus,
+#export-summary-app .modern-select:focus {
+  outline: none;
+  border-color: var(--primary-dark);
+  box-shadow: 0 0 0 4px rgba(8,185,239,.12);
+}
+#export-summary-app .select2-container .select2-selection--multiple,
+#export-summary-app .select2-container .select2-selection--single {
+  min-height: 56px !important;
+  padding: 7px 10px !important;
+  border: 1.5px solid #d6e0eb !important;
+  border-radius: 13px !important;
+  background: #fff !important;
+}
+#export-summary-app .select2-container .select2-selection__rendered,
+#export-summary-app .select2-container .select2-search__field {
+  font-size: 1.04rem !important;
+  line-height: 1.5 !important;
+}
+#export-summary-app .select2-selection__choice {
+  padding: .4rem .55rem !important;
+  font-size: .9rem !important;
+  border-radius: 8px !important;
+}
+#export-summary-app .select2-dropdown {
+  border: 1px solid #d6e0eb !important;
+  border-radius: 13px !important;
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+}
+#export-summary-app .select2-results__option {
+  padding: .75rem 1rem !important;
+  font-size: 1rem !important;
+  line-height: 1.45 !important;
+}
+#export-summary-app .flatpickr-input { cursor: pointer; background: #fff; }
+#export-summary-app .flatpickr-calendar {
+  border-radius: 15px;
+  box-shadow: var(--shadow-lg);
+}
+
+/* Date group */
+#export-summary-app .date-range-box {
+  margin-top: .25rem;
+  padding: 1rem;
+  border-radius: 15px;
+  background: #f8fbfe;
+  border: 1px solid #e2eaf3;
+}
+#export-summary-app .date-range-title {
+  margin-bottom: .8rem;
+  color: var(--text-secondary);
+  font-size: .82rem !important;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
+/* Submit bar */
+#export-summary-app .submit-row {
+  margin-top: 1.35rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid #e5ebf2;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+#export-summary-app .modern-btn {
+  min-height: 50px;
+  padding: .8rem 1.45rem;
+  border: 0;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .6rem;
+  font: inherit;
+  font-size: 1rem !important;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(20,40,70,.08);
+  transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
+}
+#export-summary-app .modern-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 22px rgba(20,40,70,.13);
+}
+#export-summary-app .modern-btn:disabled { opacity: .55; cursor: not-allowed; transform: none; }
+#export-summary-app .modern-btn i { font-size: 1.05rem !important; }
+#export-summary-app .modern-btn-primary {
+  color: #fff;
+  background: linear-gradient(135deg,#08b9ef,#078fd1);
+}
+#export-summary-app .modern-btn-success { color:#fff; background:linear-gradient(135deg,#18c58e,#08a977); }
+#export-summary-app .modern-btn-danger { color:#fff; background:linear-gradient(135deg,#ff5050,#df2635); }
+#export-summary-app .modern-btn-warning { color:#fff; background:linear-gradient(135deg,#ffb11b,#e88b00); }
+#export-summary-app .modern-btn-violet { color:#fff; background:linear-gradient(135deg,#9868f7,#6d35d6); }
+#export-summary-app .modern-btn-outline {
+  color: var(--text-secondary);
+  background: #fff;
+  border: 1.5px solid #d6e0eb;
+}
+#export-summary-app .modern-btn-sm {
+  min-height: 43px;
+  padding: .65rem 1rem;
+  font-size: .92rem !important;
+}
+#export-summary-app .modern-btn-submit {
+  min-width: 235px;
+  min-height: 58px;
+  padding: 1rem 2rem;
+  border-radius: 15px;
+  font-size: 1.08rem !important;
+  box-shadow: 0 10px 25px rgba(8,153,210,.22);
+}
+
+/* ===== Progress ===== */
+#export-summary-app .progress-card {
+  border: 1px solid #cfe9f7;
+  border-left: 5px solid var(--primary-color);
+  background: linear-gradient(145deg,#f2fbff,#f7f9ff);
+}
+#export-summary-app .progress-card .modern-card-header { background: transparent; }
+#export-summary-app .progress-card .spin-icon {
+  color: var(--primary-dark);
+  font-size: 1.25rem !important;
+  animation: spin 1s linear infinite;
+}
+#export-summary-app .progress-bar-track {
+  width: 100%;
+  height: 25px;
+  overflow: hidden;
+  border: 1px solid #d5e1ec;
+  border-radius: 999px;
+  background: #e8eef5;
+}
+#export-summary-app .progress-bar-fill {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 2%;
+  padding-right: 9px;
+  background: linear-gradient(90deg,#08b9ef,#3857e8);
+  transition: width .4s ease;
+}
+#export-summary-app .progress-bar-fill span { font-size: .85rem !important; color:#fff; font-weight:800; }
+#export-summary-app .progress-row-top {
+  display:flex;
+  justify-content:space-between;
+  gap:1rem;
+  margin-bottom:.55rem;
+  font-size:1rem !important;
+}
+#export-summary-app .progress-row-top .label { color:var(--text-secondary); }
+#export-summary-app .progress-row-top .pct { color:var(--primary-deep); font-weight:800; }
+#export-summary-app .step-track { display:flex; gap:6px; }
+#export-summary-app .step-segment {
+  flex:1;
+  height:7px;
+  overflow:hidden;
+  border-radius:99px;
+  background:#dce5ee;
+}
+#export-summary-app .step-segment .fill {
+  width:100%;
+  height:100%;
+  border-radius:99px;
+  background:linear-gradient(90deg,#08b9ef,#3857e8);
+}
+#export-summary-app .progress-footer {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:1rem;
+  margin-top:.4rem;
+}
+#export-summary-app .progress-footer .msg { font-size:1.02rem !important; color:var(--text-primary); font-weight:600; }
+#export-summary-app .progress-footer .timing { font-size:.95rem !important; color:var(--text-secondary); }
+#export-summary-app .recovery-box {
+  margin-top:1.1rem;
+  padding:1rem 1.1rem;
+  border-left:4px solid var(--warning-color);
+  border-radius:12px;
+  background:rgba(245,158,11,.08);
+}
+#export-summary-app .recovery-box .line { font-size:.96rem !important; line-height:1.55; margin-bottom:.4rem; }
+#export-summary-app .recovery-box .line:last-child { margin-bottom:0; }
+
+/* ===== Alerts ===== */
+#export-summary-app .modern-alert {
+  display:flex;
+  align-items:flex-start;
+  gap:.8rem;
+  margin-bottom:1.1rem;
+  padding:1rem 1.25rem;
+  border-radius:13px;
+  font-size:1rem !important;
+  line-height:1.55;
+}
+#export-summary-app .modern-alert i { font-size:1.25rem !important; margin-top:2px; }
+#export-summary-app .modern-alert-info { background:#eaf5ff; color:#1d4f93; border-left:4px solid var(--info-color); }
+#export-summary-app .modern-alert-success { background:#eafaf4; color:#096344; border-left:4px solid var(--success-color); }
+#export-summary-app .modern-alert-danger { background:#fff0f0; color:#a1262d; border-left:4px solid var(--danger-color); }
+
+/* ===== Jobs ===== */
+#export-summary-app .jobs-toolbar { margin-left:auto; display:flex; gap:.65rem; flex-wrap:wrap; }
+#export-summary-app .jobs-grid {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:1rem;
+  padding:1.35rem;
+}
+#export-summary-app .job-card {
+  position:relative;
+  min-width:0;
+  padding:1.25rem 1.3rem;
+  border:1px solid var(--border-color);
+  border-left:5px solid var(--text-muted);
+  border-radius:17px;
+  background:#fff;
+  box-shadow:0 3px 12px rgba(24,43,72,.045);
+  transition:transform .2s ease, box-shadow .2s ease;
+}
+#export-summary-app .job-card:hover {
+  transform:translateY(-2px);
+  box-shadow:var(--shadow-md);
+}
+#export-summary-app .job-card.accent-pending { border-left-color:var(--warning-color); }
+#export-summary-app .job-card.accent-processing { border-left-color:var(--info-color); }
+#export-summary-app .job-card.accent-completed { border-left-color:var(--success-color); }
+#export-summary-app .job-card.accent-failed { border-left-color:var(--danger-color); }
+#export-summary-app .job-card-top {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:1rem;
+  margin-bottom:.8rem;
+}
+#export-summary-app .job-type-name {
+  color:var(--text-primary);
+  font-size:1.12rem !important;
+  font-weight:800;
+}
+#export-summary-app .job-period {
+  display:flex;
+  align-items:center;
+  gap:.45rem;
+  margin-bottom:1rem;
+  color:var(--text-secondary);
+  font-size:.98rem !important;
+  font-weight:600;
+}
+#export-summary-app .job-period i { color:var(--primary-dark); }
+#export-summary-app .job-actions { display:flex; gap:.55rem; flex-wrap:wrap; }
+#export-summary-app .modern-badge {
+  display:inline-flex;
+  align-items:center;
+  gap:.4rem;
+  padding:.45rem .8rem;
+  border-radius:999px;
+  font-size:.82rem !important;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:.035em;
+  white-space:nowrap;
+}
+#export-summary-app .badge-pending { background:#fff5d9; color:#9a5b00; }
+#export-summary-app .badge-processing { background:#e5f0ff; color:#245db0; }
+#export-summary-app .badge-completed { background:#e3f8ef; color:#08704d; }
+#export-summary-app .badge-failed { background:#ffe7e8; color:#a6222b; }
+#export-summary-app .live-dot {
+  width:9px;
+  height:9px;
+  display:inline-block;
+  border-radius:50%;
+  background:var(--success-color);
+  animation:dotPulse 1.6s infinite;
+}
+#export-summary-app .empty-state { text-align:center; padding:4rem 1rem; color:var(--text-secondary); }
+#export-summary-app .empty-state .empty-icon {
+  width:90px; height:90px; margin:0 auto 1.1rem;
+  display:flex; align-items:center; justify-content:center;
+  border-radius:50%; background:#f1f5f9;
+}
+#export-summary-app .empty-state .empty-icon i { font-size:2.4rem; color:var(--text-muted); opacity:.6; }
+#export-summary-app .empty-state p { margin:0; font-size:1.25rem !important; font-weight:700; }
+#export-summary-app .empty-state span { font-size:1rem !important; color:var(--text-muted); }
+
+/* ===== SweetAlert ===== */
+.swal2-popup.esa-swal-popup {
+  border-radius:20px;
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+}
+.swal2-popup.esa-swal-popup .swal2-title { font-size:1.45rem !important; font-weight:800; }
+.swal2-popup.esa-swal-popup .swal2-html-container { font-size:1.08rem !important; line-height:1.6; }
+.swal2-popup.esa-swal-popup .swal2-confirm,
+.swal2-popup.esa-swal-popup .swal2-cancel,
+.swal2-popup.esa-swal-popup .swal2-deny {
+  min-height:48px;
+  padding:.7rem 1.4rem !important;
+  border-radius:10px !important;
+  font-size:1rem !important;
+  font-weight:700 !important;
+}
+.swal2-toast.esa-swal-toast { font-size:1rem !important; border-radius:14px; }
+
+/* ===== Motion ===== */
+@keyframes slideIn {
+  from { opacity:0; transform:translateY(14px); }
+  to { opacity:1; transform:translateY(0); }
+}
+@keyframes spin { to { transform:rotate(360deg); } }
+@keyframes dotPulse {
+  0%,100% { box-shadow:0 0 0 0 rgba(16,185,129,.45); }
+  50% { box-shadow:0 0 0 7px rgba(16,185,129,0); }
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 1200px) {
+  #export-summary-app .stats-grid { grid-template-columns:repeat(3,minmax(0,1fr)); }
+  #export-summary-app .modern-page-header { align-items:flex-start; }
+  #export-summary-app .header-pills { justify-content:flex-start; }
+}
+@media (max-width: 900px) {
+  #export-summary-app .modern-page-header { flex-direction:column; padding:2rem; }
+  #export-summary-app .header-pills { width:100%; }
+  #export-summary-app .header-pill { flex:1; }
+  #export-summary-app .jobs-grid { grid-template-columns:1fr; }
+}
+@media (max-width: 767px) {
+  #export-summary-app { font-size:16px !important; }
+  #export-summary-app .page-content-wrapperx { padding:0 .75rem 2rem; }
+  #export-summary-app .modern-page-header { margin:0 0 1rem; border-radius:0 0 22px 22px; padding:1.6rem 1.25rem; }
+  #export-summary-app .modern-page-header h1 { font-size:1.9rem !important; }
+  #export-summary-app .modern-page-header h1 i { width:48px; height:48px; font-size:1.6rem !important; }
+  #export-summary-app .modern-page-header p { font-size:1rem !important; }
+  #export-summary-app .stats-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:.75rem; }
+  #export-summary-app .stat-card { min-height:96px; padding:1rem; }
+  #export-summary-app .stat-card .stat-icon { width:46px; height:46px; flex-basis:46px; }
+  #export-summary-app .stat-card p { font-size:1.7rem !important; }
+  #export-summary-app .modern-card-body { padding:1.15rem !important; }
+  #export-summary-app .filter-panel { padding:1rem; }
+  #export-summary-app .submit-row { justify-content:stretch; }
+  #export-summary-app .modern-btn-submit { width:100%; }
+}
+@media (max-width: 480px) {
+  #export-summary-app .stats-grid { grid-template-columns:1fr; }
+  #export-summary-app .header-pills { display:grid; grid-template-columns:1fr 1fr; }
+  #export-summary-app .header-pill { min-width:0; }
+}
 </style>
 
 <div class="page-wrapper">
   <div class="content container-fluid" id="export-summary-app" v-cloak>
 
+    <!-- ===== Dashboard Hero ===== -->
     <div class="modern-page-header">
       <div class="header-text-block">
         <h1>
           <i class="fas fa-file-export"></i>
           <?php echo $pageTitle; ?>
         </h1>
-        <p><i class="fas fa-info-circle"></i> Queue export jobs and monitor their progress in real-time</p>
+        <p><i class="fas fa-circle-info"></i> Create export reports, track processing, and manage completed jobs from one place.</p>
       </div>
+
       <div class="header-pills">
         <div class="header-pill">
           <div class="pill-num">{{ jobs.length }}</div>
@@ -921,70 +746,66 @@
         <div class="row">
           <div class="col-sm-12">
 
-            <!-- Quick Status Overview -->
+            <!-- ===== KPI Overview ===== -->
             <div class="stats-grid">
               <div class="stat-card">
                 <div class="stat-icon stat-icon-total"><i class="fas fa-layer-group"></i></div>
-                <div>
-                  <h4>Total Jobs</h4>
-                  <p>{{ jobs.length }}</p>
-                </div>
+                <div><h4>Total Jobs</h4><p>{{ jobs.length }}</p></div>
               </div>
               <div class="stat-card">
                 <div class="stat-icon stat-icon-pending"><i class="fas fa-clock"></i></div>
-                <div>
-                  <h4>Pending</h4>
-                  <p>{{ jobs.filter(function(j){ return j.status === 'pending'; }).length }}</p>
-                </div>
+                <div><h4>Pending</h4><p>{{ jobs.filter(function(j){ return j.status === 'pending'; }).length }}</p></div>
               </div>
               <div class="stat-card">
                 <div class="stat-icon stat-icon-processing"><i class="fas fa-spinner"></i></div>
-                <div>
-                  <h4>Processing</h4>
-                  <p>{{ jobs.filter(function(j){ return j.status === 'processing'; }).length }}</p>
-                </div>
+                <div><h4>Processing</h4><p>{{ jobs.filter(function(j){ return j.status === 'processing'; }).length }}</p></div>
               </div>
               <div class="stat-card">
                 <div class="stat-icon stat-icon-completed"><i class="fas fa-check-circle"></i></div>
-                <div>
-                  <h4>Completed</h4>
-                  <p>{{ jobs.filter(function(j){ return j.status === 'completed'; }).length }}</p>
-                </div>
+                <div><h4>Completed</h4><p>{{ jobs.filter(function(j){ return j.status === 'completed'; }).length }}</p></div>
               </div>
               <div class="stat-card">
                 <div class="stat-icon stat-icon-failed"><i class="fas fa-exclamation-circle"></i></div>
-                <div>
-                  <h4>Failed</h4>
-                  <p>{{ jobs.filter(function(j){ return j.status === 'failed'; }).length }}</p>
-                </div>
+                <div><h4>Failed</h4><p>{{ jobs.filter(function(j){ return j.status === 'failed'; }).length }}</p></div>
               </div>
             </div>
 
-            <!-- Export Form Card -->
-            <div class="modern-card is-hoverable">
+            <!-- ===== Export Workspace ===== -->
+            <div class="modern-card export-workspace is-hoverable">
               <div class="modern-card-header is-clickable" @click="toggleFilters">
-                <div class="header-icon-badge"><i class="fas fa-filter"></i></div>
+                <div class="header-icon-badge"><i class="fas fa-sliders"></i></div>
                 <div>
-                  <h3>Export Filters</h3>
-                  <div class="header-sub">Configure and queue a new export job</div>
+                  <h3>Build Export</h3>
+                  <div class="header-sub">Choose the report, date range, and employees to include.</div>
                 </div>
-                <div style="margin-left: auto; display: flex; align-items: center; gap: 1rem;">
+                <div style="margin-left:auto;display:flex;align-items:center;gap:1rem;">
                   <span v-if="hasProcessingJobs" class="modern-badge badge-processing">
                     <i class="fas fa-spinner fa-spin"></i> Job Running
                   </span>
                   <i :class="filters_collapsed ? 'fas fa-chevron-down' : 'fas fa-chevron-up'" class="chevron-toggle"></i>
                 </div>
               </div>
+
               <div class="modern-card-body" v-show="!filters_collapsed">
+                <div class="workspace-intro">
+                  <div>
+                    <strong><i class="fas fa-wand-magic-sparkles"></i> Export configuration</strong>
+                    <span>Set the core report options first, then narrow the employee selection using the filters.</span>
+                  </div>
+                  <span class="workspace-badge"><i class="fas fa-bolt"></i> Ready to queue</span>
+                </div>
+
                 <form @submit.prevent="queueExport">
                   <div class="row">
+
+                    <!-- Core settings -->
                     <div class="col-lg-5">
                       <div class="filter-panel">
-                        <div class="panel-eyebrow"><i class="fas fa-sliders-h"></i> Report Settings</div>
+                        <div class="panel-eyebrow"><i class="fas fa-file-circle-check"></i> Report Settings</div>
+
                         <div class="modern-form-group">
                           <label class="modern-label">
-                            <i class="fas fa-list-alt"></i>
-                            Summary Type
+                            <i class="fas fa-list-alt"></i> Summary Type
                           </label>
                           <select class="modern-select" id="type" name="type" v-model="form.type">
                             <option value="">Select Summary Type</option>
@@ -1025,10 +846,7 @@
                         </div>
 
                         <div class="modern-form-group">
-                          <label class="modern-label">
-                            <i class="fas fa-file-alt"></i>
-                            File Type
-                          </label>
+                          <label class="modern-label"><i class="fas fa-file-lines"></i> File Type</label>
                           <select class="modern-select" id="file_type" name="file_type" v-model="form.file_type">
                             <option value="xlsx">Excel Workbook (.xlsx)</option>
                             <option value="xls">Excel 97-2003 Workbook (.xls)</option>
@@ -1036,62 +854,55 @@
                           </select>
                         </div>
 
-                        <div class="row">
-                          <div class="col-sm-6">
-                            <div class="modern-form-group">
-                              <label class="modern-label">
-                                <i class="fas fa-calendar-alt"></i>
-                                From Date<span class="text-danger">*</span>
-                              </label>
-                              <input class="modern-input" type="text" id="from" required name="from" autocomplete="off" v-model="form.from_date" placeholder="dd/mm/yyyy">
+                        <div class="date-range-box">
+                          <div class="date-range-title"><i class="fas fa-calendar-days"></i> Report period</div>
+                          <div class="row">
+                            <div class="col-sm-6">
+                              <div class="modern-form-group">
+                                <label class="modern-label">
+                                  <i class="fas fa-calendar-alt"></i> From Date<span class="text-danger">*</span>
+                                </label>
+                                <input class="modern-input" type="text" id="from" required name="from" autocomplete="off" v-model="form.from_date" placeholder="dd/mm/yyyy">
+                              </div>
+                            </div>
+                            <div class="col-sm-6">
+                              <div class="modern-form-group">
+                                <label class="modern-label">
+                                  <i class="fas fa-calendar-check"></i> To Date<span class="text-danger">*</span>
+                                </label>
+                                <input class="modern-input" type="text" id="to" required name="to" autocomplete="off" v-model="form.to_date" placeholder="dd/mm/yyyy">
+                              </div>
                             </div>
                           </div>
-                          <div class="col-sm-6">
-                            <div class="modern-form-group">
-                              <label class="modern-label">
-                                <i class="fas fa-calendar-check"></i>
-                                To Date<span class="text-danger">*</span>
-                              </label>
-                              <input class="modern-input" type="text" id="to" required name="to" autocomplete="off" v-model="form.to_date" placeholder="dd/mm/yyyy">
-                            </div>
-                          </div>
-                        </div>
 
-                        <div class="row" v-show="form.type == 'gni01_payroll_process'">
-                          <div class="col-sm-6">
-                            <div class="modern-form-group">
-                              <label class="modern-label">
-                                <i class="fas fa-calendar-alt"></i>
-                                OT From<span class="text-danger">*</span>
-                              </label>
-                              <input class="modern-input" type="text" id="ot_from" name="ot_from" autocomplete="off" v-model="form.ot_from" placeholder="dd/mm/yyyy">
+                          <div class="row" v-show="form.type == 'gni01_payroll_process'">
+                            <div class="col-sm-6">
+                              <div class="modern-form-group">
+                                <label class="modern-label"><i class="fas fa-calendar-alt"></i> OT From<span class="text-danger">*</span></label>
+                                <input class="modern-input" type="text" id="ot_from" name="ot_from" autocomplete="off" v-model="form.ot_from" placeholder="dd/mm/yyyy">
+                              </div>
                             </div>
-                          </div>
-                          <div class="col-sm-6">
-                            <div class="modern-form-group">
-                              <label class="modern-label">
-                                <i class="fas fa-calendar-check"></i>
-                                OT To<span class="text-danger">*</span>
-                              </label>
-                              <input class="modern-input" type="text" id="ot_to" name="ot_to" autocomplete="off" v-model="form.ot_to" placeholder="dd/mm/yyyy">
+                            <div class="col-sm-6">
+                              <div class="modern-form-group">
+                                <label class="modern-label"><i class="fas fa-calendar-check"></i> OT To<span class="text-danger">*</span></label>
+                                <input class="modern-input" type="text" id="ot_to" name="ot_to" autocomplete="off" v-model="form.ot_to" placeholder="dd/mm/yyyy">
+                              </div>
                             </div>
                           </div>
                         </div>
                       </div>
                     </div>
 
+                    <!-- Targeting filters -->
                     <div class="col-lg-7">
                       <div class="filter-panel is-tinted">
-                        <div class="panel-eyebrow"><i class="fas fa-layer-group"></i> Secondary Filters (Multi-select)</div>
+                        <div class="panel-eyebrow"><i class="fas fa-users-gear"></i> Employee Targeting</div>
 
                         <div class="row">
                           <div class="col-md-6">
                             <div class="modern-form-group">
-                              <label class="modern-label">
-                                <i class="fas fa-store"></i>
-                                Outlets
-                              </label>
-                              <select class="modern-select" id="branch" name="branch[]" style="width: 100%" multiple v-model="form.branch" @change="filterEmployees">
+                              <label class="modern-label"><i class="fas fa-store"></i> Outlets</label>
+                              <select class="modern-select" id="branch" name="branch[]" style="width:100%" multiple v-model="form.branch" @change="filterEmployees">
                                 <option v-for="o in outlets" :value="stringVal(o.id)">{{ o.name }}</option>
                               </select>
                             </div>
@@ -1099,11 +910,8 @@
 
                           <div class="col-md-6">
                             <div class="modern-form-group">
-                              <label class="modern-label">
-                                <i class="fas fa-sitemap"></i>
-                                Departments
-                              </label>
-                              <select class="modern-select" id="department" name="department[]" style="width: 100%" multiple v-model="form.department" @change="filterEmployees">
+                              <label class="modern-label"><i class="fas fa-sitemap"></i> Departments</label>
+                              <select class="modern-select" id="department" name="department[]" style="width:100%" multiple v-model="form.department" @change="filterEmployees">
                                 <option v-for="d in departments" :value="stringVal(d.id)">{{ d.name }}</option>
                               </select>
                             </div>
@@ -1111,11 +919,8 @@
 
                           <div class="col-md-6">
                             <div class="modern-form-group">
-                              <label class="modern-label">
-                                <i class="fas fa-briefcase"></i>
-                                Positions
-                              </label>
-                              <select class="modern-select" id="position" name="position[]" style="width: 100%" multiple v-model="form.position" @change="filterEmployees">
+                              <label class="modern-label"><i class="fas fa-briefcase"></i> Positions</label>
+                              <select class="modern-select" id="position" name="position[]" style="width:100%" multiple v-model="form.position" @change="filterEmployees">
                                 <option v-for="p in positions" :value="stringVal(p.id)">{{ p.name }}</option>
                               </select>
                             </div>
@@ -1123,11 +928,8 @@
 
                           <div class="col-md-6">
                             <div class="modern-form-group">
-                              <label class="modern-label">
-                                <i class="fas fa-layer-group"></i>
-                                Sections
-                              </label>
-                              <select class="modern-select" id="section" name="section[]" style="width: 100%" multiple v-model="form.section" @change="filterEmployees">
+                              <label class="modern-label"><i class="fas fa-layer-group"></i> Sections</label>
+                              <select class="modern-select" id="section" name="section[]" style="width:100%" multiple v-model="form.section" @change="filterEmployees">
                                 <option v-for="s in sections" :value="stringVal(s.id)">{{ s.name }}</option>
                               </select>
                             </div>
@@ -1135,11 +937,8 @@
 
                           <div class="col-md-6">
                             <div class="modern-form-group">
-                              <label class="modern-label">
-                                <i class="fas fa-users"></i>
-                                Select Employees
-                              </label>
-                              <select class="modern-select" id="employee" name="employee[]" style="width: 100%" multiple v-model="form.employee">
+                              <label class="modern-label"><i class="fas fa-users"></i> Select Employees</label>
+                              <select class="modern-select" id="employee" name="employee[]" style="width:100%" multiple v-model="form.employee">
                                 <option v-for="g in groups" :value="stringVal(g.id) + '-group'">group - {{ g.name }}</option>
                                 <option v-for="e in filtered_employees" :value="stringVal(e.id)">{{ e.special_id }} - {{ e.first_name }}</option>
                               </select>
@@ -1148,11 +947,8 @@
 
                           <div class="col-md-6">
                             <div class="modern-form-group">
-                              <label class="modern-label">
-                                <i class="fas fa-user-slash"></i>
-                                Exclude Employees
-                              </label>
-                              <select class="modern-select" id="exclude_employee" name="exclude_employee[]" style="width: 100%" multiple v-model="form.exclude_employee">
+                              <label class="modern-label"><i class="fas fa-user-slash"></i> Exclude Employees</label>
+                              <select class="modern-select" id="exclude_employee" name="exclude_employee[]" style="width:100%" multiple v-model="form.exclude_employee">
                                 <option v-for="g in groups" :value="stringVal(g.id) + '-group'">group - {{ g.name }}</option>
                                 <option v-for="e in filtered_employees" :value="stringVal(e.id)">{{ e.special_id }} - {{ e.first_name }}</option>
                               </select>
@@ -1173,15 +969,18 @@
               </div>
             </div>
 
-            <!-- Real-time Progress Bar -->
+            <!-- ===== Live Progress ===== -->
             <div v-if="hasProcessingJobs" class="modern-card progress-card">
               <div class="modern-card-header">
                 <i class="fas fa-spinner spin-icon"></i>
-                <span style="font-weight: 700; color: var(--text-primary);">{{ progress.title }}</span>
+                <div>
+                  <h3>{{ progress.title }}</h3>
+                  <div class="header-sub">Live processing status</div>
+                </div>
               </div>
+
               <div class="modern-card-body">
-                <!-- Progress Bar -->
-                <div style="margin-bottom: 1.1rem;">
+                <div style="margin-bottom:1.2rem;">
                   <div class="progress-row-top">
                     <span class="label">Progress: {{ progress.processed }}/{{ progress.total }}</span>
                     <span class="pct">{{ Math.round(progress.percentage) }}%</span>
@@ -1193,9 +992,8 @@
                   </div>
                 </div>
 
-                <!-- Steps Progress -->
-                <div style="margin-bottom: 1.1rem;">
-                  <div style="font-size: 0.78rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
+                <div style="margin-bottom:1.2rem;">
+                  <div style="font-size:.92rem;color:var(--text-secondary);margin-bottom:.55rem;">
                     Step {{ progress.step }}/{{ progress.total_steps }}: {{ progress.title }}
                   </div>
                   <div class="step-track">
@@ -1205,7 +1003,6 @@
                   </div>
                 </div>
 
-                <!-- Message & Timing -->
                 <div class="progress-footer">
                   <span class="msg">{{ progress.message }}</span>
                   <div class="timing">
@@ -1214,7 +1011,6 @@
                   </div>
                 </div>
 
-                <!-- Recovery Information -->
                 <div v-if="progress.resume_count > 0 || progress.failed_employee" class="recovery-box">
                   <div v-if="progress.resume_count > 0" class="line resume">
                     <i class="fas fa-redo"></i> <b>Resuming:</b> {{ progress.resume_count }} employees already calculated, continuing...
@@ -1226,20 +1022,18 @@
               </div>
             </div>
 
-            <!-- Alert Messages -->
+            <!-- ===== Alerts ===== -->
             <div v-if="infoMessage" class="modern-alert modern-alert-info">
-              <i class="fas fa-info-circle"></i>
-              <span>{{ infoMessage }}</span>
+              <i class="fas fa-info-circle"></i><span>{{ infoMessage }}</span>
             </div>
             <div v-if="errorMessage" class="modern-alert modern-alert-danger">
-              <i class="fas fa-exclamation-triangle"></i>
-              <span>{{ errorMessage }}</span>
+              <i class="fas fa-exclamation-triangle"></i><span>{{ errorMessage }}</span>
             </div>
 
-            <!-- Jobs Card -->
+            <!-- ===== Jobs Queue ===== -->
             <div class="modern-card is-hoverable">
               <div class="modern-card-header">
-                <div class="header-icon-badge"><i class="fas fa-tasks"></i></div>
+                <div class="header-icon-badge"><i class="fas fa-list-check"></i></div>
                 <div>
                   <h3>Export Jobs Queue</h3>
                   <div class="header-sub">
@@ -1247,10 +1041,10 @@
                     <span v-else>Auto-refresh paused</span>
                   </div>
                 </div>
+
                 <div class="jobs-toolbar">
                   <button type="button" class="modern-btn modern-btn-outline modern-btn-sm" @click="refreshJobs" :disabled="loading.jobs">
-                    <i :class="loading.jobs ? 'fas fa-spinner fa-spin' : 'fas fa-sync-alt'"></i>
-                    Refresh
+                    <i :class="loading.jobs ? 'fas fa-spinner fa-spin' : 'fas fa-sync-alt'"></i> Refresh
                   </button>
                   <button type="button" class="modern-btn modern-btn-sm" :class="auto_refresh ? 'modern-btn-danger' : 'modern-btn-success'" @click="toggleAutoRefresh">
                     <i :class="auto_refresh ? 'fas fa-stop' : 'fas fa-play'"></i>
@@ -1258,22 +1052,21 @@
                   </button>
                 </div>
               </div>
-              <div class="modern-card-body" style="padding: 0;">
 
+              <div class="modern-card-body" style="padding:0 !important;">
                 <div v-if="jobs.length === 0" class="empty-state">
                   <div class="empty-icon"><i class="fas fa-inbox"></i></div>
                   <p>No export jobs found</p>
-                  <span>Queue your first job using the form above</span>
+                  <span>Queue your first job using the export builder above.</span>
                 </div>
 
                 <div v-else class="jobs-grid">
                   <div v-for="job in jobs" :key="job.job_id" class="job-card" :class="'accent-' + job.status">
-
                     <div class="job-card-top">
                       <span class="job-type-name">{{ capitalize(job.type) }}</span>
                       <span class="modern-badge" :class="'badge-' + job.status">
                         <i v-if="job.status === 'pending'" class="fas fa-clock"></i>
-                        <i v-else-if="job.status === 'processing'" class="fas fa-spinner"></i>
+                        <i v-else-if="job.status === 'processing'" class="fas fa-spinner fa-spin"></i>
                         <i v-else-if="job.status === 'completed'" class="fas fa-check-circle"></i>
                         <i v-else-if="job.status === 'failed'" class="fas fa-exclamation-circle"></i>
                         {{ job.status }}
@@ -1287,19 +1080,16 @@
                       {{ (job.request && job.request.to_date) ? job.request.to_date : '-' }}
                     </div>
 
-                    <div v-if="job.error" class="modern-alert modern-alert-danger" style="margin-bottom: 0.85rem; padding: 0.6rem 0.85rem; font-size: 0.78rem;">
-                      <i class="fas fa-exclamation-triangle"></i>
-                      <span>{{ job.error }}</span>
+                    <div v-if="job.error" class="modern-alert modern-alert-danger" style="margin-bottom:.85rem;padding:.7rem .85rem;">
+                      <i class="fas fa-exclamation-triangle"></i><span>{{ job.error }}</span>
                     </div>
-                    <div v-if="lock_status_map[job.job_id]" class="modern-alert modern-alert-info" style="margin-bottom: 0.85rem; padding: 0.6rem 0.85rem; font-size: 0.78rem;">
-                      <i class="fas fa-info-circle"></i>
-                      <span>{{ lock_status_map[job.job_id] }}</span>
+                    <div v-if="lock_status_map[job.job_id]" class="modern-alert modern-alert-info" style="margin-bottom:.85rem;padding:.7rem .85rem;">
+                      <i class="fas fa-info-circle"></i><span>{{ lock_status_map[job.job_id] }}</span>
                     </div>
 
                     <div class="job-actions">
                       <a v-if="job.status === 'completed' && job.file_url" :href="job.file_url" target="_blank" class="modern-btn modern-btn-success modern-btn-sm">
-                        <i class="fas fa-download"></i>
-                        Download
+                        <i class="fas fa-download"></i> Download
                       </a>
 
                       <button v-if="job.status === 'failed' || job.status === 'processing'" type="button" class="modern-btn modern-btn-primary modern-btn-sm" @click="retryJob(job)" :disabled="retry_map[job.job_id]">
@@ -1313,18 +1103,15 @@
                       </button>
 
                       <button v-if="job.status === 'processing' || job.status === 'pending'" type="button" class="modern-btn modern-btn-warning modern-btn-sm" @click="cancelJob(job)">
-                        <i class="fas fa-ban"></i>
-                        Cancel
+                        <i class="fas fa-ban"></i> Cancel
                       </button>
 
                       <button type="button" class="modern-btn modern-btn-danger modern-btn-sm" @click="deleteJob(job)">
-                        <i class="fas fa-trash"></i>
-                        Delete
+                        <i class="fas fa-trash"></i> Delete
                       </button>
                     </div>
                   </div>
                 </div>
-
               </div>
             </div>
 
@@ -1332,7 +1119,6 @@
         </div>
       </div>
     </div>
-
   </div>
 </div>
 

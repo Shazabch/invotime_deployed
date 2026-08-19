@@ -1,8 +1,618 @@
-<div ng-app="myApp" ng-controller="empCtrl" ng-init="get_datalist_options()">
+<div class="inv-emp-wizard-shell emp-modern-page" ng-app="myApp" ng-controller="empCtrl" ng-init="get_datalist_options()">
 	<style>
-		.avatar img:hover {
-
+		/* =========================================================
+		   INVOTIME EMPLOYEE WIZARD
+		   Fully prefixed: .inv-emp-wizard-shell
+		========================================================= */
+		.inv-emp-wizard-shell .avatar img:hover {
 			cursor: pointer;
+		}
+
+		/* Force original large modal size - override old theme rules */
+		.inv-emp-wizard-shell .modal.custom-modal .modal-dialog,
+		.inv-emp-wizard-shell #add_employee .modal-dialog,
+		.inv-emp-wizard-shell #edit_employee .modal-dialog {
+			width: 1280px !important;
+			max-width: calc(100vw - 56px) !important;
+			margin: 24px auto !important;
+		}
+
+		.inv-emp-wizard-shell .modal.custom-modal .modal-content {
+			width: 100% !important;
+			border: 0 !important;
+			border-radius: 16px !important;
+			/* overflow:visible !important; */
+			box-shadow: 0 24px 80px rgba(15, 23, 42, .28) !important;
+			background: #fff !important;
+		}
+
+		.inv-emp-wizard-shell .modal.custom-modal .modal-body {
+			padding: 0 !important;
+			background: #f5f7fb !important;
+			max-height: calc(100vh - 150px) !important;
+			overflow-y: auto !important;
+		}
+
+		.inv-emp-wizard-shell .modal.custom-modal>.close {
+			position: absolute !important;
+			right: 22px !important;
+			top: 18px !important;
+			z-index: 20 !important;
+			width: 44px !important;
+			height: 44px !important;
+			border-radius: 50% !important;
+			background: rgba(255, 255, 255, .18) !important;
+			color: #fff !important;
+			opacity: 1 !important;
+			font-size: 28px !important;
+			line-height: 40px !important;
+			text-shadow: none !important;
+		}
+
+		.inv-emp-wizard-shell .emp-modern-form-header {
+			display: flex;
+			align-items: center;
+			gap: 14px;
+			padding: 24px 78px 24px 30px;
+			background:linear-gradient(to right, #00c5fb 0%, #0253cc 100%);
+			color: #fff;
+			border-radius: 16px 16px 0 0;
+		}
+
+		.inv-emp-wizard-shell .emp-modern-header-icon {
+			width: 52px;
+			height: 52px;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			border-radius: 14px;
+			background: rgba(255, 255, 255, .17);
+			font-size: 21px;
+		}
+
+		.inv-emp-wizard-shell .emp-modern-form-header h3 {
+			margin: 0;
+			font-size: 22px;
+			font-weight: 700;
+			letter-spacing: .2px;
+		}
+
+		.inv-emp-wizard-shell .emp-modern-form-header p {
+			margin: 4px 0 0;
+			opacity: .9;
+			font-size: 13px;
+		}
+
+		/* Wizard navigation */
+		.inv-emp-wizard-shell .inv-emp-wizard-nav {
+			display: flex;
+			align-items: flex-start;
+			gap: 0;
+			padding: 20px 28px 16px;
+			background: #fff;
+			border-bottom: 1px solid #e8edf3;
+			overflow-x: auto;
+		}
+
+		.inv-emp-wizard-shell .inv-emp-wizard-step {
+			position: relative;
+			flex: 1 0 150px;
+			min-width: 150px;
+			padding: 0 10px;
+			text-align: center;
+			border: 0;
+			background: transparent;
+			color: #94a3b8;
+			cursor: pointer;
+			outline: 0;
+		}
+
+		.inv-emp-wizard-shell .inv-emp-wizard-step:after {
+			content: "";
+			position: absolute;
+			height: 2px;
+			left: calc(50% + 25px);
+			right: calc(-50% + 25px);
+			top: 19px;
+			background: #e2e8f0;
+		}
+
+		.inv-emp-wizard-shell .inv-emp-wizard-step:last-child:after {
+			display: none;
+		}
+
+		.inv-emp-wizard-shell .inv-emp-wizard-step .inv-emp-wizard-num {
+			position: relative;
+			z-index: 2;
+			width: 40px;
+			height: 40px;
+			margin: 0 auto 7px;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			border-radius: 50%;
+			background: #edf2f7;
+			color: #64748b;
+			font-size: 13px;
+			font-weight: 800;
+			transition: .2s ease;
+		}
+
+		.inv-emp-wizard-shell .inv-emp-wizard-step .inv-emp-wizard-label {
+			display: block;
+			font-size: 11px;
+			font-weight: 700;
+			white-space: nowrap;
+		}
+
+		.inv-emp-wizard-shell .inv-emp-wizard-step.is-active {
+			color: #0f766e;
+		}
+
+		.inv-emp-wizard-shell .inv-emp-wizard-step.is-active .inv-emp-wizard-num {
+			background: #0f766e;
+			color: #fff;
+			box-shadow: 0 6px 16px rgba(15, 118, 110, .25);
+		}
+
+		.inv-emp-wizard-shell .inv-emp-wizard-step.is-done {
+			color: #0891b2;
+		}
+
+		.inv-emp-wizard-shell .inv-emp-wizard-step.is-done .inv-emp-wizard-num {
+			background: #0891b2;
+			color: #fff;
+		}
+
+		/* Step content */
+		.inv-emp-wizard-shell .inv-emp-wizard-content {
+			padding: 26px 30px 8px;
+		}
+
+		.inv-emp-wizard-shell .inv-emp-wizard-pane {
+			display: none;
+		}
+
+		.inv-emp-wizard-shell .inv-emp-wizard-pane.is-active {
+			display: block;
+			animation: invEmpFade .22s ease;
+		}
+
+		@keyframes invEmpFade {
+			from {
+				opacity: 0;
+				transform: translateY(5px);
+			}
+
+			to {
+				opacity: 1;
+				transform: translateY(0);
+			}
+		}
+
+		.inv-emp-wizard-shell .inv-emp-wizard-pane>h2 {
+			margin: 0 0 22px !important;
+			padding: 0 0 12px !important;
+			border-bottom: 1px solid #e7edf4;
+			font-size: 20px !important;
+			font-weight: 700 !important;
+			color: #1e293b !important;
+		}
+
+		.inv-emp-wizard-shell .inv-emp-wizard-pane>br {
+			display: none;
+		}
+
+		.inv-emp-wizard-shell .inv-emp-wizard-pane .row {
+			background: #fff;
+			border: 1px solid #e8edf3;
+			border-radius: 14px;
+			padding: 18px 12px 0;
+			margin: 0 0 18px;
+			box-shadow: 0 4px 14px rgba(15, 23, 42, .025);
+		}
+
+		.inv-emp-wizard-shell .form-group {
+			margin-bottom: 18px;
+		}
+
+		.inv-emp-wizard-shell .form-group .control-label {
+			font-size: 12px;
+			font-weight: 700;
+			color: #475569;
+			margin-bottom: 7px;
+			letter-spacing: .15px;
+		}
+
+		.inv-emp-wizard-shell .form-control {
+			min-height: 42px;
+			border-radius: 9px;
+			border: 1px solid #d8e0e9;
+			box-shadow: none;
+			transition: border-color .18s, box-shadow .18s;
+		}
+
+		.inv-emp-wizard-shell .form-control:focus {
+			border-color: #0891b2;
+			box-shadow: 0 0 0 3px rgba(8, 145, 178, .10);
+		}
+
+		.inv-emp-wizard-shell .select2-container {
+			width: 100% !important;
+		}
+
+		.inv-emp-wizard-shell .select2-container--default .select2-selection--single,
+		.inv-emp-wizard-shell .select2-container--default .select2-selection--multiple {
+			min-height: 42px !important;
+			border: 1px solid #d8e0e9 !important;
+			border-radius: 9px !important;
+		}
+
+		/* Wizard footer */
+		.inv-emp-wizard-shell .inv-emp-wizard-actions {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			gap: 12px;
+			padding: 18px 30px 24px;
+			background: #fff;
+			border-top: 1px solid #e8edf3;
+		}
+
+		.inv-emp-wizard-shell .inv-emp-wizard-actions .btn {
+			min-width: 128px;
+			border-radius: 9px;
+			font-weight: 700;
+			padding: 10px 18px;
+		}
+
+		.inv-emp-wizard-shell .inv-emp-wizard-actions .inv-emp-next {
+			background: linear-gradient(135deg, #0f766e, #0891b2);
+			border: 0;
+			color: #fff;
+			box-shadow: 0 8px 18px rgba(8, 145, 178, .20);
+		}
+
+		.inv-emp-wizard-shell .emp-modern-submit {
+			min-width: 180px !important;
+			border-radius: 9px !important;
+			font-weight: 700 !important;
+			padding: 10px 20px !important;
+		}
+
+		/* Race / Religion / Nationality */
+		.inv-emp-wizard-shell .emp-id-field {
+			margin-bottom: 18px;
+		}
+
+		.inv-emp-wizard-shell .emp-id-field .control-label {
+			display: flex;
+			align-items: center;
+			gap: 7px;
+		}
+
+		.inv-emp-wizard-shell .emp-id-field .control-label i {
+			color: #0891b2;
+		}
+
+		.inv-emp-wizard-shell .emp-id-select-wrap {
+			position: relative;
+		}
+
+		.inv-emp-wizard-shell .emp-id-select {
+			width: 100%;
+			height: 42px;
+			padding: 0 42px 0 13px;
+			border: 1px solid #d8e0e9;
+			border-radius: 9px;
+			background: #fff;
+			color: #334155;
+			font-size: 14px;
+			outline: 0;
+			appearance: none;
+			-webkit-appearance: none;
+		}
+
+		.inv-emp-wizard-shell .emp-id-select:focus {
+			border-color: #0891b2;
+			box-shadow: 0 0 0 3px rgba(8, 145, 178, .10);
+		}
+
+		.inv-emp-wizard-shell .emp-id-select-wrap:after {
+			content: "\f107";
+			font-family: FontAwesome;
+			position: absolute;
+			right: 15px;
+			top: 50%;
+			transform: translateY(-50%);
+			color: #64748b;
+			pointer-events: none;
+		}
+
+		.inv-emp-wizard-shell .emp-id-custom-box {
+			margin-top: 9px;
+			padding: 12px;
+			border: 1px solid #cceaf0;
+			border-radius: 10px;
+			background: #f4fbfc;
+		}
+
+		.inv-emp-wizard-shell .emp-id-custom-title {
+			display: flex;
+			align-items: center;
+			gap: 7px;
+			margin-bottom: 8px;
+			font-size: 12px;
+			font-weight: 700;
+			color: #0f766e;
+		}
+
+		.inv-emp-wizard-shell .emp-id-custom-box .form-control {
+			background: #fff;
+		}
+
+		.inv-emp-wizard-shell .emp-id-hint {
+			margin-top: 6px;
+			font-size: 11px;
+			color: #64748b;
+		}
+
+		@media (max-width:991px) {
+
+			.inv-emp-wizard-shell .modal.custom-modal .modal-dialog,
+			.inv-emp-wizard-shell #add_employee .modal-dialog,
+			.inv-emp-wizard-shell #edit_employee .modal-dialog {
+				width: calc(100vw - 24px) !important;
+				max-width: none !important;
+				margin: 12px auto !important;
+			}
+
+			.inv-emp-wizard-shell .modal.custom-modal .modal-body {
+				max-height: calc(100vh - 120px) !important;
+			}
+
+			.inv-emp-wizard-shell .inv-emp-wizard-nav {
+				padding: 15px 12px;
+			}
+
+			.inv-emp-wizard-shell .inv-emp-wizard-content {
+				padding: 20px 16px 4px;
+			}
+
+			.inv-emp-wizard-shell .inv-emp-wizard-pane .row {
+				padding: 14px 10px 0;
+			}
+		}
+
+		@media (max-width:767px) {
+			.inv-emp-wizard-shell .emp-modern-form-header {
+				padding: 18px 60px 18px 18px;
+			}
+
+			.inv-emp-wizard-shell .inv-emp-wizard-step {
+				flex: 0 0 105px;
+				min-width: 105px;
+				padding: 0 4px;
+			}
+
+			.inv-emp-wizard-shell .inv-emp-wizard-step .inv-emp-wizard-label {
+				font-size: 10px;
+			}
+
+			.inv-emp-wizard-shell .inv-emp-wizard-step:after {
+				right: calc(-50% + 20px);
+			}
+
+			.inv-emp-wizard-shell .inv-emp-wizard-actions {
+				padding: 14px 16px 18px;
+			}
+		}
+	</style>
+	<style>
+		/* =========================================================
+   INV EMPLOYEE TABLE V2 - modern table view
+   Prefixed under .inv-emp-wizard-shell — page-scoped only
+========================================================= */
+		.inv-emp-wizard-shell .inv-emp-table2 {
+			border-radius: 16px;
+			overflow: hidden;
+			box-shadow: 0 6px 24px rgba(15, 23, 42, .06);
+			border: 1px solid #e8edf3;
+			background: #fff;
+			padding: 10px;
+		}
+
+		/* Toolbar row above the table */
+		.inv-emp-wizard-shell .page-title {
+			font-weight: 800;
+			color: #123b61;
+			letter-spacing: .2px;
+		}
+
+		.inv-emp-wizard-shell .m-b-30 .btn.rounded {
+			border: 0 !important;
+			border-radius: 10px !important;
+			font-weight: 700;
+			padding: 9px 18px;
+			transition: transform .18s ease, box-shadow .18s ease, opacity .18s ease;
+			box-shadow: 0 6px 14px rgba(8, 126, 164, .18);
+		}
+
+		.inv-emp-wizard-shell .m-b-30 .btn.rounded:hover {
+			transform: translateY(-2px);
+			box-shadow: 0 10px 22px rgba(8, 126, 164, .26);
+			opacity: .95;
+		}
+
+		.inv-emp-wizard-shell .m-b-30 .btn-primary.rounded {
+			background: linear-gradient(to right, #00c5fb 0%, #0253cc 100%);
+		}
+
+		/* Table header (column titles) */
+		.inv-emp-wizard-shell .inv-emp-table2 table.datatable thead th {
+			background: linear-gradient(180deg, #f4f9fc 0%, #eef4f9 100%);
+			color: #123b61;
+			font-size: 11.5px;
+			font-weight: 800;
+			text-transform: uppercase;
+			letter-spacing: .5px;
+			border-bottom: 2px solid #dce7f0 !important;
+			padding: 12px;
+			position: sticky;
+			top: 0;
+			z-index: 2;
+		}
+
+		/* DataTables' auto-generated per-column search row (2nd row in <thead>) */
+		.inv-emp-wizard-shell .inv-emp-table2 table.datatable thead tr:nth-child(2) th {
+			padding: 10px 12px 16px;
+		}
+
+		.inv-emp-wizard-shell .inv-emp-table2 table.datatable thead tr:nth-child(2) th input {
+			padding: 8px 10px;
+			height: auto;
+			border-radius: 8px;
+			border: 1px solid #d8e0e9;
+		}
+
+		/* Rows */
+		.inv-emp-wizard-shell .inv-emp-table2 table.datatable tbody tr {
+			transition: background-color .15s ease, transform .15s ease, box-shadow .15s ease;
+			animation: invEmpRowIn .3s ease both;
+		}
+
+		.inv-emp-wizard-shell .inv-emp-table2 table.datatable tbody tr:nth-child(2n) {
+			background-color: #f8fbfd;
+		}
+
+		.inv-emp-wizard-shell .inv-emp-table2 table.datatable tbody tr:hover {
+			background-color: #eaf7fb !important;
+			box-shadow: inset 3px 0 0 #0891b2;
+		}
+
+		.inv-emp-wizard-shell .inv-emp-table2 table.datatable tbody td {
+			padding: 18px 14px;
+			vertical-align: middle;
+			border-top: 1px solid #eef2f7 !important;
+			font-size: 13px;
+			color: #334155;
+		}
+
+		/* Employee name / link */
+		.inv-emp-wizard-shell .inv-emp-table2 table.datatable tbody td h2 {
+			margin: 0;
+			font-size: 14px;
+			line-height: 1.4;
+		}
+
+		.inv-emp-wizard-shell .inv-emp-table2 table.datatable tbody td h2 a {
+			transition: color .15s ease;
+		}
+
+		.inv-emp-wizard-shell .inv-emp-table2 table.datatable tbody td h2 a:hover {
+			color: #12b7d4 !important;
+		}
+
+		.inv-emp-wizard-shell .inv-emp-table2 table.datatable tbody td h2 span {
+			display: block;
+			font-size: 11px;
+			font-weight: 600;
+			color: #94a3b8;
+			margin-top: 2px;
+		}
+
+		/* Space the action-icon row away from the name text above it */
+		.inv-emp-wizard-shell .inv-emp-table2 table.datatable tbody td h2>a>div {
+			margin-top: 10px !important;
+		}
+
+		/* Row action icon buttons (clocking / report / summary / edit) */
+		.inv-emp-wizard-shell .inv-emp-table2 .btn-default.btn-xs {
+			border-radius: 7px;
+			border: 1px solid #e2e8f0;
+			margin: 3px 4px 3px 0;
+			padding: 5px 8px;
+			transition: transform .15s ease, background .15s ease, border-color .15s ease;
+		}
+
+		.inv-emp-wizard-shell .inv-emp-table2 .btn-default.btn-xs:hover {
+			background: #0891b2;
+			border-color: #0891b2;
+			transform: translateY(-1px) scale(1.06);
+		}
+
+		.inv-emp-wizard-shell .inv-emp-table2 .btn-default.btn-xs:hover i {
+			color: #fff !important;
+		}
+
+		/* Section / Group / Outlet emphasis (column-position based, no markup needed) */
+		.inv-emp-wizard-shell .inv-emp-table2 table.datatable tbody td:nth-child(5),
+		.inv-emp-wizard-shell .inv-emp-table2 table.datatable tbody td:nth-child(7),
+		.inv-emp-wizard-shell .inv-emp-table2 table.datatable tbody td:nth-child(8) {
+			font-weight: 600;
+		}
+
+		.inv-emp-wizard-shell .inv-emp-table2 table.datatable tbody td:nth-child(8) {
+			color: #0f766e;
+		}
+
+		/* Staggered row entrance animation */
+		@keyframes invEmpRowIn {
+			from {
+				opacity: 0;
+				transform: translateY(6px);
+			}
+
+			to {
+				opacity: 1;
+				transform: translateY(0);
+			}
+		}
+
+		.inv-emp-wizard-shell .inv-emp-table2 table.datatable tbody tr:nth-child(1) {
+			animation-delay: .02s;
+		}
+
+		.inv-emp-wizard-shell .inv-emp-table2 table.datatable tbody tr:nth-child(2) {
+			animation-delay: .05s;
+		}
+
+		.inv-emp-wizard-shell .inv-emp-table2 table.datatable tbody tr:nth-child(3) {
+			animation-delay: .08s;
+		}
+
+		.inv-emp-wizard-shell .inv-emp-table2 table.datatable tbody tr:nth-child(4) {
+			animation-delay: .11s;
+		}
+
+		.inv-emp-wizard-shell .inv-emp-table2 table.datatable tbody tr:nth-child(5) {
+			animation-delay: .14s;
+		}
+
+		.inv-emp-wizard-shell .inv-emp-table2 table.datatable tbody tr:nth-child(n+6) {
+			animation-delay: .16s;
+		}
+
+		/* Respect reduced motion */
+		@media (prefers-reduced-motion: reduce) {
+			.inv-emp-wizard-shell .inv-emp-table2 table.datatable tbody tr {
+				animation: none !important;
+			}
+		}
+
+		/* DataTables' own search/length/pagination controls, restyled to match */
+		.inv-emp-wizard-shell .inv-emp-table2 .dataTables_filter input,
+		.inv-emp-wizard-shell .inv-emp-table2 .dataTables_length select {
+			border-radius: 8px;
+			border: 1px solid #d8e0e9;
+			padding: 6px 10px;
+		}
+
+		.inv-emp-wizard-shell .inv-emp-table2 .dataTables_paginate .paginate_button.current {
+			background: linear-gradient(120deg, #087ea4, #12b7d4) !important;
+			border: 0 !important;
+			color: #fff !important;
+			border-radius: 7px !important;
 		}
 	</style>
 
@@ -20,7 +630,7 @@
 			</div>
 			<div class="row" ng-show="mainTable">
 				<div class="col-md-12">
-					<div class="table-responsive">
+					<div class="table-responsive inv-emp-table2">
 						<table id="datatable_emp" class="table table-striped custom-table datatable">
 							<!-- <col width="50">
   						<col width="50"> -->
@@ -113,9 +723,13 @@
 		<div class="modal-dialog">
 			<button type="button" class="close" data-dismiss="modal">&times;</button>
 			<div class="modal-content modal-lg">
-				<!-- <div class="modal-header">
-					<h4 class="modal-title">Add Employee</h4>
-				</div> -->
+				<div class="emp-modern-form-header">
+					<div class="emp-modern-header-icon"><i class="fa fa-user-plus"></i></div>
+					<div>
+						<h3>Add Employee</h3>
+						<p>Create a complete employee profile</p>
+					</div>
+				</div>
 				<div class="modal-body">
 					<form class="m-b-30" name="emp_form" id="emp_form" ng-submit="onSubmit(emp_form.$valid)">
 						<br />
@@ -255,38 +869,61 @@
 									<input class="form-control" type="text" ng-model="addModel.pob">
 								</div>
 							</div>
+							<!-- Modern Identity Fields -->
 							<div class="col-sm-6">
-								<div class="form-group">
-									<label class="control-label">Race</label>
-									<select class="select" ng-model="addModel.race">
-										<option value="">Select Race</option>
-										<option value="Malay">Malay</option>
-										<option value="Chinese">Chinese</option>
-										<option value="Indian">Indian</option>
-										<option value="Others">Others</option>
-									</select>
+								<div class="form-group emp-id-field">
+									<label class="control-label"><i class="fa fa-users"></i> Race</label>
+									<div class="emp-id-select-wrap">
+										<select class="emp-id-select" ng-model="identitySelect.add.race" ng-change="onIdentitySelectChange('add','race')">
+											<option value="">Select Race</option>
+											<option value="Malay">Malay</option>
+											<option value="Chinese">Chinese</option>
+											<option value="Indian">Indian</option>
+											<option value="__other__">Other / Custom Value</option>
+										</select>
+									</div>
+									<div class="emp-id-custom-box" ng-if="identityCustom.add.race">
+										<div class="emp-id-custom-title"><i class="fa fa-pencil"></i> Enter Actual Race</div>
+										<input class="form-control" type="text" ng-model="identityCustomValue.add.race" ng-change="updateCustomIdentityValue('add','race')" placeholder="Example: Kadazan">
+										<div class="emp-id-hint">The actual value is saved directly.</div>
+									</div>
 								</div>
 							</div>
 							<div class="col-sm-6">
-								<div class="form-group">
-									<label class="control-label">Religion</label>
-									<select class="select" ng-model="addModel.religion">
-										<option value="muslim">Muslim</option>
-										<option value="buddhist">Buddhist</option>
-										<option value="christian">Christian</option>
-										<option value="hindu">Hindu</option>
-										<option value="others">Others</option>
-									</select>
+								<div class="form-group emp-id-field">
+									<label class="control-label"><i class="fa fa-heart"></i> Religion</label>
+									<div class="emp-id-select-wrap">
+										<select class="emp-id-select" ng-model="identitySelect.add.religion" ng-change="onIdentitySelectChange('add','religion')">
+											<option value="">Select Religion</option>
+											<option value="muslim">Muslim</option>
+											<option value="buddhist">Buddhist</option>
+											<option value="christian">Christian</option>
+											<option value="hindu">Hindu</option>
+											<option value="__other__">Other / Custom Value</option>
+										</select>
+									</div>
+									<div class="emp-id-custom-box" ng-if="identityCustom.add.religion">
+										<div class="emp-id-custom-title"><i class="fa fa-pencil"></i> Enter Actual Religion</div>
+										<input class="form-control" type="text" ng-model="identityCustomValue.add.religion" ng-change="updateCustomIdentityValue('add','religion')" placeholder="Example: Sikh">
+										<div class="emp-id-hint">The actual value is saved directly.</div>
+									</div>
 								</div>
 							</div>
 							<div class="col-sm-6">
-								<div class="form-group">
-									<label class="control-label">Nationality</label>
-									<select class="select" ng-model="addModel.nationality">
-										<option value="">Select Nationality</option>
-										<option value="Malaysian">Malaysian</option>
-										<option value="Others">Others</option>
-									</select>
+								<div class="form-group emp-id-field">
+									<label class="control-label"><i class="fa fa-flag"></i> Nationality</label>
+									<div class="emp-id-select-wrap">
+										<select class="emp-id-select" ng-model="identitySelect.add.nationality" ng-change="onIdentitySelectChange('add','nationality')">
+											<option value="">Select Nationality</option>
+											<option value="Malaysian">Malaysian</option>
+											<option value="__other__">Other / Custom Value</option>
+										</select>
+									</div>
+									<div class="emp-id-custom-box" ng-if="identityCustom.add.nationality">
+										<div class="emp-id-custom-title"><i class="fa fa-pencil"></i> Enter Actual Nationality</div>
+										<input class="form-control" type="text" ng-model="identityCustomValue.add.nationality" ng-change="updateCustomIdentityValue('add','nationality')" placeholder="Example: Indonesian">
+										<div class="emp-id-hint">The actual value is saved directly.</div>
+									</div>
 								</div>
 							</div>
 							<div class="col-sm-6">
@@ -893,7 +1530,7 @@
 							</div>
 						<?php endif ?>
 						<div class="m-t-20 text-center">
-							<button class="btn btn-primary" type="submit">Create Employee</button>
+							<button class="btn btn-primary emp-modern-submit" type="submit"><i class="fa fa-check"></i> Create Employee</button>
 						</div>
 					</form>
 				</div>
@@ -904,8 +1541,12 @@
 		<div class="modal-dialog">
 			<button type="button" class="close" data-dismiss="modal">&times;</button>
 			<div class="modal-content modal-lg">
-				<div class="modal-header">
-					<h4 class="modal-title">Edit Employee</h4>
+				<div class="emp-modern-form-header">
+					<div class="emp-modern-header-icon"><i class="fa fa-user"></i></div>
+					<div>
+						<h3>Edit Employee</h3>
+						<p>Update employee information</p>
+					</div>
 				</div>
 				<div class="modal-body">
 					<form class="m-b-30" name="emp_edit_form" id="emp_edit_form" ng-submit="onSubmit2(emp_edit_form.$valid)">
@@ -1045,34 +1686,61 @@
 									<input class="form-control" type="text" ng-model="editModel.pob">
 								</div>
 							</div>
+							<!-- Modern Identity Fields -->
 							<div class="col-sm-6">
-								<div class="form-group">
-									<label class="control-label">Race</label>
-									<select class="select select-race" ng-model="editModel.race">
-										<option value="">Select Race</option>
-										<option ng-repeat="race in races" value="{{race}}">{{race}}</option>
-									</select>
+								<div class="form-group emp-id-field">
+									<label class="control-label"><i class="fa fa-users"></i> Race</label>
+									<div class="emp-id-select-wrap">
+										<select class="emp-id-select" ng-model="identitySelect.edit.race" ng-change="onIdentitySelectChange('edit','race')">
+											<option value="">Select Race</option>
+											<option value="Malay">Malay</option>
+											<option value="Chinese">Chinese</option>
+											<option value="Indian">Indian</option>
+											<option value="__other__">Other / Custom Value</option>
+										</select>
+									</div>
+									<div class="emp-id-custom-box" ng-if="identityCustom.edit.race">
+										<div class="emp-id-custom-title"><i class="fa fa-pencil"></i> Enter Actual Race</div>
+										<input class="form-control" type="text" ng-model="identityCustomValue.edit.race" ng-change="updateCustomIdentityValue('edit','race')" placeholder="Enter actual race">
+										<div class="emp-id-hint">The actual value is saved directly.</div>
+									</div>
 								</div>
 							</div>
 							<div class="col-sm-6">
-								<div class="form-group">
-									<label class="control-label">Religion</label>
-									<select class="select select-religion" ng-model="editModel.religion">
-										<option value="muslim">Muslim</option>
-										<option value="buddhist">Buddhist</option>
-										<option value="christian">Christian</option>
-										<option value="hindu">Hindu</option>
-										<option value="others">Others</option>
-									</select>
+								<div class="form-group emp-id-field">
+									<label class="control-label"><i class="fa fa-heart"></i> Religion</label>
+									<div class="emp-id-select-wrap">
+										<select class="emp-id-select" ng-model="identitySelect.edit.religion" ng-change="onIdentitySelectChange('edit','religion')">
+											<option value="">Select Religion</option>
+											<option value="muslim">Muslim</option>
+											<option value="buddhist">Buddhist</option>
+											<option value="christian">Christian</option>
+											<option value="hindu">Hindu</option>
+											<option value="__other__">Other / Custom Value</option>
+										</select>
+									</div>
+									<div class="emp-id-custom-box" ng-if="identityCustom.edit.religion">
+										<div class="emp-id-custom-title"><i class="fa fa-pencil"></i> Enter Actual Religion</div>
+										<input class="form-control" type="text" ng-model="identityCustomValue.edit.religion" ng-change="updateCustomIdentityValue('edit','religion')" placeholder="Enter actual religion">
+										<div class="emp-id-hint">The actual value is saved directly.</div>
+									</div>
 								</div>
 							</div>
 							<div class="col-sm-6">
-								<div class="form-group">
-									<label class="control-label">Nationality</label>
-									<select class="select select-nationality" ng-model="editModel.nationality">
-										<option value="">Select Nationality</option>
-										<option ng-repeat="nationality in nationalities" value="{{nationality}}">{{nationality}}</option>
-									</select>
+								<div class="form-group emp-id-field">
+									<label class="control-label"><i class="fa fa-flag"></i> Nationality</label>
+									<div class="emp-id-select-wrap">
+										<select class="emp-id-select" ng-model="identitySelect.edit.nationality" ng-change="onIdentitySelectChange('edit','nationality')">
+											<option value="">Select Nationality</option>
+											<option value="Malaysian">Malaysian</option>
+											<option value="__other__">Other / Custom Value</option>
+										</select>
+									</div>
+									<div class="emp-id-custom-box" ng-if="identityCustom.edit.nationality">
+										<div class="emp-id-custom-title"><i class="fa fa-pencil"></i> Enter Actual Nationality</div>
+										<input class="form-control" type="text" ng-model="identityCustomValue.edit.nationality" ng-change="updateCustomIdentityValue('edit','nationality')" placeholder="Enter actual nationality">
+										<div class="emp-id-hint">The actual value is saved directly.</div>
+									</div>
 								</div>
 							</div>
 							<div class="col-sm-6">
@@ -1855,6 +2523,86 @@
 		$scope.mainTable = true;
 		$scope.filtered = '';
 		$scope.editModel = {};
+
+		/* Modern Race / Religion / Nationality UI state - frontend only */
+		$scope.identitySelect = {
+			add: {
+				race: '',
+				religion: '',
+				nationality: ''
+			},
+			edit: {
+				race: '',
+				religion: '',
+				nationality: ''
+			}
+		};
+		$scope.identityCustom = {
+			add: {
+				race: false,
+				religion: false,
+				nationality: false
+			},
+			edit: {
+				race: false,
+				religion: false,
+				nationality: false
+			}
+		};
+		$scope.identityCustomValue = {
+			add: {
+				race: '',
+				religion: '',
+				nationality: ''
+			},
+			edit: {
+				race: '',
+				religion: '',
+				nationality: ''
+			}
+		};
+		$scope.identityDefaults = {
+			race: ['Malay', 'Chinese', 'Indian'],
+			religion: ['muslim', 'buddhist', 'christian', 'hindu'],
+			nationality: ['Malaysian']
+		};
+
+		$scope.onIdentitySelectChange = function(mode, field) {
+			var selected = $scope.identitySelect[mode][field];
+			var model = mode === 'add' ? $scope.addModel : $scope.editModel;
+			if (selected === '__other__') {
+				$scope.identityCustom[mode][field] = true;
+				model[field] = $scope.identityCustomValue[mode][field] || '';
+			} else {
+				$scope.identityCustom[mode][field] = false;
+				$scope.identityCustomValue[mode][field] = '';
+				model[field] = selected;
+			}
+		};
+
+		$scope.updateCustomIdentityValue = function(mode, field) {
+			var model = mode === 'add' ? $scope.addModel : $scope.editModel;
+			model[field] = $scope.identityCustomValue[mode][field];
+		};
+
+		$scope.prepareIdentityEditFields = function() {
+			['race', 'religion', 'nationality'].forEach(function(field) {
+				var actual = $scope.editModel[field] || '';
+				if (!actual) {
+					$scope.identitySelect.edit[field] = '';
+					$scope.identityCustom.edit[field] = false;
+					$scope.identityCustomValue.edit[field] = '';
+				} else if ($scope.identityDefaults[field].indexOf(actual) !== -1) {
+					$scope.identitySelect.edit[field] = actual;
+					$scope.identityCustom.edit[field] = false;
+					$scope.identityCustomValue.edit[field] = '';
+				} else {
+					$scope.identitySelect.edit[field] = '__other__';
+					$scope.identityCustom.edit[field] = true;
+					$scope.identityCustomValue.edit[field] = actual;
+				}
+			});
+		};
 		$scope.current_special_id = '';
 		$scope.user_device_id = false;
 		$scope.sync_action = 'SetUserDataAll';
@@ -2071,31 +2819,31 @@
 					$scope.editModel.min_worked_hours_meal = $('#min_worked_hours_meal_edit').val();
 				<?php } ?>
 
-					$http.post('<?php echo base_url(); ?>' + 'employees/update', $scope.editModel, config).then(function(response) {
-						if (response.data.success) {
+				$http.post('<?php echo base_url(); ?>' + 'employees/update', $scope.editModel, config).then(function(response) {
+					if (response.data.success) {
 
-							$scope.getEmployees();
-							$scope.mainTable = false;
-							$scope.editModel = {};
-							$('#edit_employee').modal('toggle');
+						$scope.getEmployees();
+						$scope.mainTable = false;
+						$scope.editModel = {};
+						$('#edit_employee').modal('toggle');
 
-							showNotification("Success", 'Employee updated successfully!', "success");
-							$('body').LoadingOverlay("hide");
-						} else if (response.data.success === false) {
-							// Check if error is for special characters in first_name
-							if (response.data.msg && response.data.msg.includes('First name may only contain')) {
-								$('#firstNameError_edit').text(response.data.msg).show();
-							} else if (response.data.duplicate) {
-								showNotification("Error", response.data.msg, "error");
-							} else {
-								showNotification("Error", response.data.msg, "error");
-							}
-							$('body').LoadingOverlay("hide");
+						showNotification("Success", 'Employee updated successfully!', "success");
+						$('body').LoadingOverlay("hide");
+					} else if (response.data.success === false) {
+						// Check if error is for special characters in first_name
+						if (response.data.msg && response.data.msg.includes('First name may only contain')) {
+							$('#firstNameError_edit').text(response.data.msg).show();
+						} else if (response.data.duplicate) {
+							showNotification("Error", response.data.msg, "error");
+						} else {
+							showNotification("Error", response.data.msg, "error");
 						}
+						$('body').LoadingOverlay("hide");
+					}
 
-					}, function(error) {
-						console.log(error.data);
-					});
+				}, function(error) {
+					console.log(error.data);
+				});
 			}
 		}
 
@@ -2122,9 +2870,6 @@
 				"select-section": "section_id",
 				"select-level": "level",
 				"select-marital": "marital_status",
-				"select-race": "race",
-				"select-religion": "religion",
-				"select-nationality": "nationality",
 				"select-device-role": "device_role",
 				"select-status": "employee_status",
 				"select-reason": "termination_reason",
@@ -2202,6 +2947,7 @@
 				$scope.races = response.data.races;
 				$scope.nationalities = response.data.nationalities;
 				$scope.ot_groups = response.data.ot_groups;
+				$scope.prepareIdentityEditFields();
 
 				<?php if ($company_id == 146) { ?>
 					let min_worked_hours_meal = $scope.editModel.min_worked_hours_meal;
@@ -2404,6 +3150,21 @@
 							meal_rate: 0,
 						}
 						$scope.positions = [];
+						$scope.identitySelect.add = {
+							race: '',
+							religion: '',
+							nationality: ''
+						};
+						$scope.identityCustom.add = {
+							race: false,
+							religion: false,
+							nationality: false
+						};
+						$scope.identityCustomValue.add = {
+							race: '',
+							religion: '',
+							nationality: ''
+						};
 						$('#add_employee').modal('toggle');
 						showNotification("Success", response.data.msg, "success");
 						$('body').LoadingOverlay("hide");
@@ -2423,4 +3184,425 @@
 			}
 		}
 	});
+</script>
+
+<style>
+	/* ================================================================
+   INV EMPLOYEE WIZARD V2 - HARD OVERRIDES / NEW STRUCTURE
+   All rules are isolated under .inv-emp-wizard-shell
+================================================================ */
+	.inv-emp-wizard-shell .modal.custom-modal .modal-dialog,
+	.inv-emp-wizard-shell #add_employee .modal-dialog,
+	.inv-emp-wizard-shell #edit_employee .modal-dialog {
+		width: calc(100vw - 90px) !important;
+		max-width: 1360px !important;
+		min-width: 980px !important;
+		margin: 18px auto !important;
+	}
+
+	.inv-emp-wizard-shell .modal.custom-modal .modal-content {
+		border-radius: 20px !important;
+	}
+
+	.inv-emp-wizard-shell .modal.custom-modal .modal-body {
+		padding: 0 !important;
+		max-height: calc(100vh - 135px) !important;
+		overflow-y: auto !important;
+		background: #f3f6fa !important;
+	}
+
+	.inv-emp-wizard-shell .emp-modern-form-header {
+		padding: 26px 84px 24px 30px !important;
+		background: linear-gradient(to right, #00c5fb 0%, #0253cc 100%);
+	}
+
+	.inv-emp-wizard-shell .inv2-progress-wrap {
+		padding: 18px 30px 12px;
+		background: #fff;
+		border-bottom: 1px solid #e5ebf2;
+	}
+
+	.inv-emp-wizard-shell .inv2-progress-top {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 12px;
+		font-size: 12px;
+		font-weight: 700;
+		color: #64748b;
+	}
+
+	.inv-emp-wizard-shell .inv2-progress-bar {
+		height: 6px;
+		border-radius: 99px;
+		background: #e7edf4;
+		overflow: hidden;
+	}
+
+	.inv-emp-wizard-shell .inv2-progress-fill {
+		width: 16.66%;
+		height: 100%;
+		border-radius: 99px;
+		background: linear-gradient(90deg, #087ea4, #12b7d4);
+		transition: width .28s ease;
+	}
+
+	.inv-emp-wizard-shell .inv-emp-wizard-nav {
+		padding: 18px 24px !important;
+		gap: 8px !important;
+		background: #fff !important;
+		overflow-x: auto;
+	}
+
+	.inv-emp-wizard-shell .inv-emp-wizard-step {
+		flex: 1 0 165px !important;
+		min-width: 165px !important;
+		padding: 10px 8px !important;
+		border-radius: 14px !important;
+		text-align: left !important;
+		display: flex !important;
+		align-items: center;
+		gap: 10px;
+	}
+
+	.inv-emp-wizard-shell .inv-emp-wizard-step:after {
+		display: none !important;
+	}
+
+	.inv-emp-wizard-shell .inv-emp-wizard-step:hover {
+		background: #f1f8fb !important;
+		color: #087ea4 !important;
+	}
+
+	.inv-emp-wizard-shell .inv-emp-wizard-step .inv-emp-wizard-num {
+		margin: 0 !important;
+		flex: 0 0 38px;
+		width: 38px !important;
+		height: 38px !important;
+		background: #eef2f7 !important;
+	}
+
+	.inv-emp-wizard-shell .inv-emp-wizard-step .inv-emp-wizard-label {
+		font-size: 12px !important;
+		white-space: normal !important;
+		line-height: 1.25;
+	}
+
+	.inv-emp-wizard-shell .inv2-step-icon {
+		width: 20px;
+		text-align: center;
+		font-size: 14px;
+	}
+
+	.inv-emp-wizard-shell .inv-emp-wizard-step.is-active {
+		background: #eaf8fc !important;
+		color: #087ea4 !important;
+		box-shadow: inset 0 0 0 1px #bce7f1;
+	}
+
+	.inv-emp-wizard-shell .inv-emp-wizard-step.is-active .inv-emp-wizard-num {
+		background: #087ea4 !important;
+	}
+
+	.inv-emp-wizard-shell .inv-emp-wizard-step.is-done {
+		color: #17845b !important;
+		background: #f0fbf6 !important;
+	}
+
+	.inv-emp-wizard-shell .inv-emp-wizard-step.is-done .inv-emp-wizard-num {
+		background: #1aa06d !important;
+	}
+
+	.inv-emp-wizard-shell .inv-emp-wizard-content {
+		padding: 26px 30px 12px !important;
+		min-height: 470px;
+	}
+
+	.inv-emp-wizard-shell .inv-emp-wizard-pane {
+		display: none;
+	}
+
+	.inv-emp-wizard-shell .inv-emp-wizard-pane.is-active {
+		display: block !important;
+	}
+
+	.inv-emp-wizard-shell .inv2-step-heading {
+		display: flex;
+		align-items: center;
+		gap: 14px;
+		margin: 0 0 20px;
+	}
+
+	.inv-emp-wizard-shell .inv2-step-heading-icon {
+		width: 46px;
+		height: 46px;
+		border-radius: 13px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: linear-gradient(135deg, #087ea4, #16b9d3);
+		color: #fff;
+		font-size: 18px;
+		box-shadow: 0 9px 20px rgba(8, 126, 164, .18);
+	}
+
+	.inv-emp-wizard-shell .inv2-step-heading h2 {
+		margin: 0 !important;
+		padding: 0 !important;
+		border: 0 !important;
+		font-size: 22px !important;
+	}
+
+	.inv-emp-wizard-shell .inv2-step-heading p {
+		margin: 3px 0 0;
+		color: #718096;
+		font-size: 12px;
+	}
+
+	.inv-emp-wizard-shell .inv-emp-wizard-pane>h2,
+	.inv-emp-wizard-shell .inv-emp-wizard-pane>br {
+		display: none !important;
+	}
+
+	.inv-emp-wizard-shell .inv-emp-wizard-pane .row {
+		background: #fff !important;
+		border: 1px solid #e3eaf2 !important;
+		border-radius: 14px !important;
+		padding: 18px 12px 2px !important;
+		margin: 0 0 16px !important;
+		box-shadow: 0 5px 18px rgba(20, 42, 70, .035) !important;
+	}
+
+	.inv-emp-wizard-shell .inv-emp-wizard-actions {
+		position: sticky;
+		bottom: 0;
+		z-index: 5;
+		padding: 16px 30px 20px !important;
+		box-shadow: 0 -8px 25px rgba(15, 23, 42, .06);
+	}
+
+	.inv-emp-wizard-shell .inv2-save-later {
+		margin-right: 8px;
+	}
+
+	.inv-emp-wizard-shell .inv-emp-wizard-actions .btn {
+		min-width: 130px;
+	}
+
+	.inv-emp-wizard-shell .inv-emp-wizard-actions .inv-emp-next {
+		min-width: 150px !important;
+	}
+
+	.inv-emp-wizard-shell .inv2-step-counter {
+		font-size: 12px;
+		color: #64748b;
+		font-weight: 700;
+	}
+
+	@media (max-width: 1100px) {
+
+		.inv-emp-wizard-shell .modal.custom-modal .modal-dialog,
+		.inv-emp-wizard-shell #add_employee .modal-dialog,
+		.inv-emp-wizard-shell #edit_employee .modal-dialog {
+			width: calc(100vw - 24px) !important;
+			min-width: 0 !important;
+		}
+	}
+</style>
+<script>
+	/* Employee Wizard V2. Pure frontend: existing Angular models/endpoints are untouched. */
+	(function($) {
+		var CONFIG = {
+			profile: {
+				title: 'Profile',
+				icon: 'fa-user',
+				desc: 'Personal identity and employee basics'
+			},
+			employment: {
+				title: 'Employment',
+				icon: 'fa-briefcase',
+				desc: 'Outlet, role and organisation details'
+			},
+			contact: {
+				title: 'Contact',
+				icon: 'fa-phone',
+				desc: 'Address and contact information'
+			},
+			additional: {
+				title: 'Details',
+				icon: 'fa-id-card',
+				desc: 'Documents, bank and additional settings'
+			},
+			leave: {
+				title: 'Leave',
+				icon: 'fa-calendar',
+				desc: 'Leave entitlement and balances'
+			},
+			payroll: {
+				title: 'Payroll & Allowances',
+				icon: 'fa-money',
+				desc: 'Rates, allowances and payroll configuration'
+			}
+		};
+		var headings = {
+			'Basic Information': 'profile',
+			'General Information': 'profile',
+			'Departmental Information': 'employment',
+			'Contact Information': 'contact',
+			'Other Information': 'additional',
+			'Leaves': 'leave',
+			'Allowance Rates': 'payroll',
+			'Meal Allowance Entitlement': 'payroll',
+			'Miscellaneous': 'payroll',
+			'Attendance Allowance': 'payroll'
+		};
+
+		function ensureLarge($modal) {
+			var d = $modal.find('.modal-dialog').get(0);
+			if (!d) return;
+			d.style.setProperty('width', 'calc(100vw - 90px)', 'important');
+			d.style.setProperty('max-width', '1360px', 'important');
+			d.style.setProperty('min-width', '980px', 'important');
+			if (window.innerWidth < 1100) {
+				d.style.setProperty('width', 'calc(100vw - 24px)', 'important');
+				d.style.setProperty('min-width', '0', 'important');
+			}
+		}
+
+		function build(modalId) {
+			var $m = $(modalId),
+				$f = $m.find('form').first();
+			ensureLarge($m);
+			if (!$f.length || $f.data('inv2ready')) return;
+			var panes = [],
+				current = null,
+				seen = {};
+			$f.contents().toArray().forEach(function(node) {
+				var $n = $(node),
+					key = null;
+				if (node.nodeType === 1 && node.tagName && node.tagName.toLowerCase() === 'h2') key = headings[$.trim($n.text())] || null;
+				if (key) {
+					if (!seen[key]) {
+						current = $('<section class="inv-emp-wizard-pane" data-step="' + key + '"></section>');
+						panes.push({
+							key: key,
+							$pane: current
+						});
+						seen[key] = true;
+					}
+					// all repeated payroll subsections remain in the same pane
+				}
+				if (!current) {
+					current = $('<section class="inv-emp-wizard-pane" data-step="profile"></section>');
+					panes.push({
+						key: 'profile',
+						$pane: current
+					});
+					seen.profile = true;
+				}
+				current.append(node);
+			});
+			if (!panes.length) return;
+			$f.empty();
+			var $prog = $('<div class="inv2-progress-wrap"><div class="inv2-progress-top"><span class="inv2-progress-label">Step 1 of ' + panes.length + '</span><span class="inv2-step-counter">Getting started</span></div><div class="inv2-progress-bar"><div class="inv2-progress-fill"></div></div></div>');
+			var $nav = $('<div class="inv-emp-wizard-nav"></div>'),
+				$content = $('<div class="inv-emp-wizard-content"></div>');
+			panes.forEach(function(p, i) {
+				var c = CONFIG[p.key] || {
+					title: p.key,
+					icon: 'fa-circle',
+					desc: ''
+				};
+				$nav.append('<button type="button" class="inv-emp-wizard-step" data-index="' + i + '"><span class="inv-emp-wizard-num">' + (i + 1) + '</span><span class="inv2-step-icon"><i class="fa ' + c.icon + '"></i></span><span class="inv-emp-wizard-label">' + c.title + '</span></button>');
+				p.$pane.prepend('<div class="inv2-step-heading"><div class="inv2-step-heading-icon"><i class="fa ' + c.icon + '"></i></div><div><h2>' + c.title + '</h2><p>' + c.desc + '</p></div></div>');
+				$content.append(p.$pane);
+			});
+			$f.append($prog, $nav, $content);
+			var $submit = $f.find('.emp-modern-submit').last();
+			var $holder = $submit.closest('.m-t-20.text-center');
+			var $actions = $('<div class="inv-emp-wizard-actions"><button type="button" class="btn btn-default inv-emp-prev"><i class="fa fa-angle-left"></i> Previous</button><div><button type="button" class="btn btn-default inv2-save-later"><i class="fa fa-list"></i> All Steps</button><button type="button" class="btn inv-emp-next">Continue <i class="fa fa-arrow-right"></i></button></div></div>');
+			if ($submit.length) {
+				$submit.detach();
+				$actions.children('div').append($submit);
+			}
+			if ($holder.length) $holder.remove();
+			$f.append($actions);
+			var idx = 0;
+
+			function validPane(i) {
+				var $p = panes[i].$pane,
+					bad = [];
+				$p.find('input[required],select[required],textarea[required]').each(function() {
+					if (!$(this).val()) bad.push(this);
+				});
+				if (bad.length) {
+					$(bad[0]).focus();
+					return false;
+				}
+				return true;
+			}
+
+			function show(i) {
+				i = Math.max(0, Math.min(i, panes.length - 1));
+				idx = i;
+				$content.find('.inv-emp-wizard-pane').removeClass('is-active').eq(i).addClass('is-active');
+				$nav.find('.inv-emp-wizard-step').each(function(n) {
+					$(this).toggleClass('is-active', n === i).toggleClass('is-done', n < i);
+				});
+				$actions.find('.inv-emp-prev').toggle(i > 0);
+				$actions.find('.inv-emp-next').toggle(i < panes.length - 1);
+				$submit.toggle(i === panes.length - 1);
+				$prog.find('.inv2-progress-label').text('Step ' + (i + 1) + ' of ' + panes.length);
+				$prog.find('.inv2-step-counter').text((CONFIG[panes[i].key] || {}).title || '');
+				$prog.find('.inv2-progress-fill').css('width', (((i + 1) / panes.length) * 100) + '%');
+				var b = $m.find('.modal-body').get(0);
+				if (b) b.scrollTop = 0;
+				$m.trigger('inv2:stepchange', [i, panes.length]);
+			}
+			$nav.on('click', '.inv-emp-wizard-step', function() {
+				show(+$(this).data('index'));
+			});
+			$actions.on('click', '.inv-emp-prev', function() {
+				show(idx - 1);
+			});
+			$actions.on('click', '.inv-emp-next', function() {
+				if (validPane(idx)) show(idx + 1);
+				else alert('Please complete the required fields in this step before continuing.');
+			});
+			$actions.on('click', '.inv2-save-later', function() {
+				$nav.get(0).scrollIntoView({
+					behavior: 'smooth',
+					block: 'nearest'
+				});
+			});
+			$f.data('inv2ready', true);
+			show(0);
+		}
+
+		function initAll() {
+			build('#add_employee');
+			build('#edit_employee');
+		}
+		$(function() {
+			setTimeout(initAll, 100);
+			setTimeout(initAll, 700);
+		});
+		$(document).on('shown.bs.modal', '#add_employee,#edit_employee', function() {
+			ensureLarge($(this));
+			build('#' + this.id);
+		});
+		$(window).on('resize', function() {
+			$('#add_employee,#edit_employee').each(function() {
+				ensureLarge($(this));
+			});
+		});
+		// purely cosmetic, no state/logic
+		$('.m-b-30 .btn.rounded').on('click', function() {
+			var $b = $(this);
+			$b.css('transform', 'scale(0.96)');
+			setTimeout(function() {
+				$b.css('transform', '');
+			}, 120);
+		});
+	})(jQuery);
 </script>

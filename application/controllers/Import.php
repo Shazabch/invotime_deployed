@@ -2144,7 +2144,9 @@ class Import extends CI_Controller
 			$position = $this->db->get_where('positions', array('company_id =' => $cid, 'TRIM(title) = ' => $val["position"]))->row();
 			$role = $this->db->get_where('roles', array('company_id =' => $cid, 'TRIM(job_name) = ' => $val["role"]))->row();
 			$branch = $this->db->get_where('branches', array('company_id =' => $cid, 'TRIM(name) = ' => $val["outlet"]))->row();
-			$section = $this->db->get_where('sections', array('company_id =' => $cid, 'TRIM(title) = ' => $val["Section"]))->row();
+
+			// validation loop
+			$section = $this->db->get_where('sections', array('company_id =' => $cid, 'TRIM(title) =' => $val["section"]))->row();
 
 			$employee = $this->db->get_where('employees', array('deleted_at =' => NULL, 'company_id =' => $cid, 'special_id = ' => $val["employee_id"]))->row();
 
@@ -2210,16 +2212,15 @@ class Import extends CI_Controller
 			}
 
 			if (!$section) {
-				if ($val['Section'] != '') {
-					$is_section_inserted = $this->db->insert('sections', array('company_id' => $cid, 'title' => $val["Section"]));
+				if ($val['section'] != '') {
+					$is_section_inserted = $this->db->insert('sections', array('company_id' => $cid, 'title' => $val["section"]));
 					if ($is_section_inserted) {
-						$section = $this->db->get_where('sections', array('company_id =' => $cid, 'title = ' => $val["Section"]))->row();
+						$section = $this->db->get_where('sections', array('company_id =' => $cid, 'title = ' => $val["section"]))->row();
 					} else {
-
 						$required_missing = true;
 						$err = array();
-						$err["row"] = $key + 1 . " (" . $val["Employee_ID"] . ")";
-						$err["error"] = "<b>" . $val["Section"] . " </b>section could not be inserted";
+						$err["row"] = $key + 1 . " (" . $val["employee_id"] . ")";
+						$err["error"] = "<b>" . $val["section"] . " </b>section could not be inserted";
 						$rows_error[] = $err;
 					}
 				}
@@ -2382,7 +2383,7 @@ class Import extends CI_Controller
 					// 'pob' => $val["pob"],
 					// 'ic_passport' => $val["ic_passport"],
 					'race' => $val["race"],
-					// 'religion' => $val["religion"],
+					'religion' => $val["religion"],
 					'nationality' => $val["nationality"],
 					// 'perm_address' => $val["perm_address"],
 					// 'perm_address_postcode' => $val["perm_address_postcode"],

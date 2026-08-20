@@ -63,6 +63,29 @@ class PayrollBulkHelper
     private $all_manual_shift2 = [];
     private $all_manual_shift3 = [];
 
+    // --- Lookup indexes (built once at the end of prefetch()) -----------------
+    // Every index preserves the original fetch order inside each bucket, so the
+    // getters return exactly the same rows in the same order as the linear scans
+    // they replace — they just stop being O(number of employees) each.
+
+    /** @var array 'list name' => [ (int)employee_id => rows[] ] */
+    private $idx_by_employee = [];
+
+    /** @var array (int)employee_id => shift rows[] */
+    private $idx_shifts_by_employee = [];
+
+    /** @var array holiday_date => full holiday rows[] */
+    private $idx_holidays_by_date = [];
+
+    /** @var array Pre-parsed include/exclude groups for $all_holidays */
+    private $holidays_parsed = [];
+
+    /** @var array "emp_id|branch_id" => holiday date strings[] */
+    private $memo_holidays_mine = [];
+
+    /** @var array 'settings name' => [ (int)branch_id => rows[] ] */
+    private $idx_by_branch = [];
+
     public function __construct()
     {
         $this->ci = &get_instance();
@@ -292,7 +315,105 @@ class PayrollBulkHelper
             }
         }
 
+        $this->build_indexes($cid);
+
         $this->prefetched = true;
+    }
+
+    /**
+     * Build the lookup indexes used by every getter below.
+     *
+     * Purely mechanical: each bucket keeps the rows in their original fetch order,
+     * so the getters return exactly what the previous linear scans returned. This
+     * turns ~25 O(total rows) scans per employee into O(1) array lookups.
+     */
+    private function build_indexes($cid)
+    {
+        $lists = array(
+            'is_ot'               => $this->all_is_ot,
+            'is_late'             => $this->all_is_late,
+            'is_late_break'       => $this->all_is_late_break,
+            'is_early_out'        => $this->all_is_early_out,
+            'manual_late'         => $this->all_manual_late,
+            'manual_late_break'   => $this->all_manual_late_break,
+            'manual_early_out'    => $this->all_manual_early_out,
+            'manual_ot'           => $this->all_manual_ot,
+            'manual_short_hours'  => $this->all_manual_short_hours,
+            'remark'              => $this->all_remark,
+            'staff_remark'        => $this->all_staff_remark,
+            'trip_a'              => $this->all_trip_a,
+            'trip_b'              => $this->all_trip_b,
+            'replacement_leaves'  => $this->all_replacement_leaves,
+            'replaced_ph'         => $this->all_replaced_ph,
+        );
+
+        if ($cid == 66) {
+            $lists['manual_ta']     = $this->all_manual_ta;
+            $lists['manual_ma']     = $this->all_manual_ma;
+            $lists['manual_ca']     = $this->all_manual_ca;
+            $lists['manual_spa']    = $this->all_manual_spa;
+            $lists['manual_aca']    = $this->all_manual_aca;
+            $lists['manual_fl']     = $this->all_manual_fl;
+            $lists['manual_cw']     = $this->all_manual_cw;
+            $lists['manual_mo']     = $this->all_manual_mo;
+            $lists['manual_shift1'] = $this->all_manual_shift1;
+            $lists['manual_shift2'] = $this->all_manual_shift2;
+            $lists['manual_shift3'] = $this->all_manual_shift3;
+        }
+
+        foreach ($lists as $name => $list) {
+            $map = array();
+            foreach ($list as $l) {
+                $map[(int)$l->employee_id][] = $l;
+            }
+            $this->idx_by_employee[$name] = $map;
+        }
+
+        // Shifts: explode the `employees` CSV once per shift row instead of once per
+        // shift row *per employee*. Bucketing under (int) of each numeric member id
+        // reproduces the loose comparison in_array((string)$emp_id, $emp_arr) made.
+        // Non-numeric members can never loosely equal a numeric employee id, so they
+        // are skipped exactly as the original comparison skipped them.
+        $this->idx_shifts_by_employee = array();
+        foreach ($this->all_shifts as $l) {
+            $seen = array();
+            foreach (explode(',', $l->employees) as $member) {
+                if (!is_numeric($member)) continue;
+                $key = (int)$member;
+                if (isset($seen[$key])) continue; // a row must be added once, like in_array()
+                $seen[$key] = true;
+                $this->idx_shifts_by_employee[$key][] = $l;
+            }
+        }
+
+        // Public holidays: pre-split include/exclude groups once per holiday row.
+        $this->holidays_parsed = array();
+        foreach ($this->all_holidays as $value) {
+            $row = new stdClass();
+            $row->holiday_date    = $value->holiday_date;
+            $row->branch_id       = $value->branch_id;
+            $row->include_groups  = array_filter(explode(',', $value->include_groups));
+            $row->exclude_groups  = array_filter(explode(',', $value->exclude_groups));
+            $this->holidays_parsed[] = $row;
+        }
+
+        $this->idx_holidays_by_date = array();
+        foreach ($this->all_holidays_full as $h) {
+            $this->idx_holidays_by_date[$h->holiday_date][] = $h;
+        }
+
+        $branch_lists = array(
+            'late_in'     => $this->all_late_in_settings,
+            'late_break'  => $this->all_late_break_settings,
+            'early_out'   => $this->all_early_out_settings,
+        );
+        foreach ($branch_lists as $name => $list) {
+            $map = array();
+            foreach ($list as $l) {
+                $map[(int)$l->branch_id][] = $l;
+            }
+            $this->idx_by_branch[$name] = $map;
+        }
     }
 
     /**
@@ -309,124 +430,118 @@ class PayrollBulkHelper
     // =========================================================================
 
     /**
-     * Generic filter: return rows from $list where employee_id == $id
+     * Generic lookup: rows of $list_name belonging to $id.
+     * Replaces the previous full-list scan; identical rows, identical order.
      */
-    private function filter_by_employee($list, $id)
+    private function filter_by_employee($list_name, $id)
     {
-        $result = array();
-        foreach ($list as $l) {
-            if ($l->employee_id == $id) {
-                $result[] = $l;
-            }
-        }
-        return $result;
+        $id = (int)$id;
+        return isset($this->idx_by_employee[$list_name][$id])
+            ? $this->idx_by_employee[$list_name][$id]
+            : array();
     }
 
     /** Same return format as get_is_ot_list() */
     public function get_is_ot_list($emp_id)
     {
-        return $this->filter_by_employee($this->all_is_ot, $emp_id);
+        return $this->filter_by_employee('is_ot', $emp_id);
     }
 
     /** Same return format as get_is_late_list() */
     public function get_is_late_list($emp_id)
     {
-        return $this->filter_by_employee($this->all_is_late, $emp_id);
+        return $this->filter_by_employee('is_late', $emp_id);
     }
 
     /** Same return format as get_is_late_break_list() */
     public function get_is_late_break_list($emp_id)
     {
-        return $this->filter_by_employee($this->all_is_late_break, $emp_id);
+        return $this->filter_by_employee('is_late_break', $emp_id);
     }
 
     /** Same return format as get_is_early_out_list() */
     public function get_is_early_out_list($emp_id)
     {
-        return $this->filter_by_employee($this->all_is_early_out, $emp_id);
+        return $this->filter_by_employee('is_early_out', $emp_id);
     }
 
     /** Same return format as get_manual_late_list() */
     public function get_manual_late_list($emp_id)
     {
-        return $this->filter_by_employee($this->all_manual_late, $emp_id);
+        return $this->filter_by_employee('manual_late', $emp_id);
     }
 
     /** Same return format as get_manual_late_break_list() */
     public function get_manual_late_break_list($emp_id)
     {
-        return $this->filter_by_employee($this->all_manual_late_break, $emp_id);
+        return $this->filter_by_employee('manual_late_break', $emp_id);
     }
 
     /** Same return format as get_manual_early_out_list() */
     public function get_manual_early_out_list($emp_id)
     {
-        return $this->filter_by_employee($this->all_manual_early_out, $emp_id);
+        return $this->filter_by_employee('manual_early_out', $emp_id);
     }
 
     /** Same return format as get_manual_ot_list() */
     public function get_manual_ot_list($emp_id)
     {
-        return $this->filter_by_employee($this->all_manual_ot, $emp_id);
+        return $this->filter_by_employee('manual_ot', $emp_id);
     }
 
     /** Same return format as get_manual_short_hours_list() */
     public function get_manual_short_hours_list($emp_id)
     {
-        return $this->filter_by_employee($this->all_manual_short_hours, $emp_id);
+        return $this->filter_by_employee('manual_short_hours', $emp_id);
     }
 
     /** Same return format as get_remark_list() */
     public function get_remark_list($emp_id)
     {
-        return $this->filter_by_employee($this->all_remark, $emp_id);
+        return $this->filter_by_employee('remark', $emp_id);
     }
 
     /** Same return format as get_staff_remark_list() */
     public function get_staff_remark_list($emp_id)
     {
-        return $this->filter_by_employee($this->all_staff_remark, $emp_id);
+        return $this->filter_by_employee('staff_remark', $emp_id);
     }
 
     /** Same return format as get_trip_a_list() */
     public function get_trip_a_list($emp_id)
     {
-        return $this->filter_by_employee($this->all_trip_a, $emp_id);
+        return $this->filter_by_employee('trip_a', $emp_id);
     }
 
     /** Same return format as get_trip_b_list() */
     public function get_trip_b_list($emp_id)
     {
-        return $this->filter_by_employee($this->all_trip_b, $emp_id);
+        return $this->filter_by_employee('trip_b', $emp_id);
     }
 
     /** Same return format as get_replacement_leaves_list() */
     public function get_replacement_leaves_list($emp_id)
     {
-        return $this->filter_by_employee($this->all_replacement_leaves, $emp_id);
+        return $this->filter_by_employee('replacement_leaves', $emp_id);
     }
 
     /** Same return format as get_replaced_ph_list() */
     public function get_replaced_ph_list($emp_id)
     {
-        return $this->filter_by_employee($this->all_replaced_ph, $emp_id);
+        return $this->filter_by_employee('replaced_ph', $emp_id);
     }
 
     /**
      * Same return format as get_shift_list().
-     * Filters from bulk-fetched shifts using FIND_IN_SET logic in PHP.
+     * Served from the pre-built index (the FIND_IN_SET equivalent is resolved once
+     * per shift row during prefetch instead of once per shift row per employee).
      */
     public function get_shift_list($emp_id)
     {
-        $result = array();
-        $id_str = (string)$emp_id;
-        foreach ($this->all_shifts as $l) {
-            $emp_arr = explode(',', $l->employees);
-            if (in_array($id_str, $emp_arr)) {
-                $result[] = $l;
-            }
-        }
-        return $result;
+        $emp_id = (int)$emp_id;
+        return isset($this->idx_shifts_by_employee[$emp_id])
+            ? $this->idx_shifts_by_employee[$emp_id]
+            : array();
     }
 
     /**
@@ -439,17 +554,23 @@ class PayrollBulkHelper
      */
     public function get_public_holidays_mine($emp_id, $branch_id = false)
     {
+        // Deterministic for a given (employee, branch) over the prefetched data.
+        $memo_key = ((int)$emp_id) . '|' . ((int)$branch_id);
+        if (isset($this->memo_holidays_mine[$memo_key])) {
+            return $this->memo_holidays_mine[$memo_key];
+        }
+
         $emp_group_ids = isset($this->emp_groups_map[$emp_id]) ? $this->emp_groups_map[$emp_id] : array();
 
         $dates = array();
-        foreach ($this->all_holidays as $value) {
+        foreach ($this->holidays_parsed as $value) {
             // Branch filter: same logic as original WHERE (branch_id = X or branch_id = 0)
             if ($branch_id && $value->branch_id != 0 && $value->branch_id != $branch_id) {
                 continue;
             }
 
-            $include_groups = array_filter(explode(',', $value->include_groups));
-            $exclude_groups = array_filter(explode(',', $value->exclude_groups));
+            $include_groups = $value->include_groups;
+            $exclude_groups = $value->exclude_groups;
 
             if (empty($include_groups) && empty($exclude_groups)) {
                 $dates[] = $value->holiday_date;
@@ -468,6 +589,8 @@ class PayrollBulkHelper
                 continue;
             }
         }
+
+        $this->memo_holidays_mine[$memo_key] = $dates;
         return $dates;
     }
 
@@ -481,8 +604,11 @@ class PayrollBulkHelper
      */
     public function get_public_holiday_by_date($date, $branch_id)
     {
-        foreach ($this->all_holidays_full as $h) {
-            if ($h->holiday_date == $date && ($h->branch_id == $branch_id || $h->branch_id == 0)) {
+        if (!isset($this->idx_holidays_by_date[$date])) {
+            return null;
+        }
+        foreach ($this->idx_holidays_by_date[$date] as $h) {
+            if ($h->branch_id == $branch_id || $h->branch_id == 0) {
                 return $h;
             }
         }
@@ -497,31 +623,27 @@ class PayrollBulkHelper
     /** Same return format as get_late_in_settings($bid) */
     public function get_late_in_settings($branch_id)
     {
-        $result = array();
-        foreach ($this->all_late_in_settings as $l) {
-            if ($l->branch_id == $branch_id) $result[] = $l;
-        }
-        return $result;
+        return $this->filter_by_branch('late_in', $branch_id);
     }
 
     /** Same return format as get_late_break_settings($bid) */
     public function get_late_break_settings($branch_id)
     {
-        $result = array();
-        foreach ($this->all_late_break_settings as $l) {
-            if ($l->branch_id == $branch_id) $result[] = $l;
-        }
-        return $result;
+        return $this->filter_by_branch('late_break', $branch_id);
     }
 
     /** Same return format as get_early_out_settings($bid) */
     public function get_early_out_settings($branch_id)
     {
-        $result = array();
-        foreach ($this->all_early_out_settings as $l) {
-            if ($l->branch_id == $branch_id) $result[] = $l;
-        }
-        return $result;
+        return $this->filter_by_branch('early_out', $branch_id);
+    }
+
+    private function filter_by_branch($list_name, $branch_id)
+    {
+        $branch_id = (int)$branch_id;
+        return isset($this->idx_by_branch[$list_name][$branch_id])
+            ? $this->idx_by_branch[$list_name][$branch_id]
+            : array();
     }
 
     // =========================================================================
@@ -531,56 +653,56 @@ class PayrollBulkHelper
 
     public function get_manual_ta_list($emp_id)
     {
-        return $this->filter_by_employee($this->all_manual_ta, $emp_id);
+        return $this->filter_by_employee('manual_ta', $emp_id);
     }
 
     public function get_manual_ma_list($emp_id)
     {
-        return $this->filter_by_employee($this->all_manual_ma, $emp_id);
+        return $this->filter_by_employee('manual_ma', $emp_id);
     }
 
     public function get_manual_ca_list($emp_id)
     {
-        return $this->filter_by_employee($this->all_manual_ca, $emp_id);
+        return $this->filter_by_employee('manual_ca', $emp_id);
     }
 
     public function get_manual_spa_list($emp_id)
     {
-        return $this->filter_by_employee($this->all_manual_spa, $emp_id);
+        return $this->filter_by_employee('manual_spa', $emp_id);
     }
 
     public function get_manual_aca_list($emp_id)
     {
-        return $this->filter_by_employee($this->all_manual_aca, $emp_id);
+        return $this->filter_by_employee('manual_aca', $emp_id);
     }
 
     public function get_manual_fl_list($emp_id)
     {
-        return $this->filter_by_employee($this->all_manual_fl, $emp_id);
+        return $this->filter_by_employee('manual_fl', $emp_id);
     }
 
     public function get_manual_cw_list($emp_id)
     {
-        return $this->filter_by_employee($this->all_manual_cw, $emp_id);
+        return $this->filter_by_employee('manual_cw', $emp_id);
     }
 
     public function get_manual_mo_list($emp_id)
     {
-        return $this->filter_by_employee($this->all_manual_mo, $emp_id);
+        return $this->filter_by_employee('manual_mo', $emp_id);
     }
 
     public function get_manual_shift1_list($emp_id)
     {
-        return $this->filter_by_employee($this->all_manual_shift1, $emp_id);
+        return $this->filter_by_employee('manual_shift1', $emp_id);
     }
 
     public function get_manual_shift2_list($emp_id)
     {
-        return $this->filter_by_employee($this->all_manual_shift2, $emp_id);
+        return $this->filter_by_employee('manual_shift2', $emp_id);
     }
 
     public function get_manual_shift3_list($emp_id)
     {
-        return $this->filter_by_employee($this->all_manual_shift3, $emp_id);
+        return $this->filter_by_employee('manual_shift3', $emp_id);
     }
 }

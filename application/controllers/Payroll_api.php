@@ -11,6 +11,16 @@ class Payroll_api extends CI_Controller
     private $API_KEY = 'inv-T1m3-P@yr0ll-2026-s3cur3K3y!';
      private $company_id = null;
 
+    // --- OT status fast path (see _get_is_ot_status_buffered) --------------------
+    /** @var array [shift_id][approve_date] => auto_approve_days row (LAST match wins) */
+    private $_approved_ot_index = [];
+    /** @var array ot_days rows in write order, flushed as batched REPLACEs at the end */
+    private $_ot_days_buffer = [];
+    /** @var array auto_approve_days rows in write order, flushed as batched REPLACEs */
+    private $_auto_approve_buffer = [];
+    /** @var array "month|year|branch_id" => monthly_working_days row */
+    private $_monthly_working_days_cache = [];
+
     public function __construct()
     {
         parent::__construct();
@@ -53,6 +63,63 @@ class Payroll_api extends CI_Controller
 
         return true;
     }
+      public function verify_license()
+{
+    // Accept JSON body
+    $raw = file_get_contents("php://input");
+    $input = json_decode($raw, true);
+
+    // Fallback for form-data / x-www-form-urlencoded
+    if (empty($input) || !is_array($input)) {
+        $input = array_merge($_GET, $_POST);
+    }
+
+    // Get license from request body
+    $license = isset($input['license']) ? trim($input['license']) : '';
+
+    if (empty($license)) {
+        $this->response_json([
+            'status' => 'error',
+            'message' => 'License is required'
+        ], 400);
+        return;
+    }
+
+    // Verify license
+    $this->db->select('id, token, company_id, status, expires_at');
+
+    $query = $this->db->get_where('payroll_licenses', [
+        'token'  => $license,
+        'status' => 1
+    ]);
+
+    // Invalid / inactive license
+    if ($query->num_rows() === 0) {
+        $this->response_json([
+            'status' => 'error',
+            'message' => 'Invalid or inactive license'
+        ], 401);
+        return;
+    }
+
+    $license_data = $query->row();
+
+    // Check expiry
+    if (!empty($license_data->expires_at) && strtotime($license_data->expires_at) < time()) {
+        $this->response_json([
+            'status' => 'error',
+            'message' => 'License has expired'
+        ], 401);
+        return;
+    }
+
+    // License is valid
+    $this->response_json([
+        'status'  => 'success',
+        'valid'   => true,
+        'message' => 'License is valid and active'
+    ], 200);
+}
 
     /**
      * Cached wrapper for get_sql_data() — avoids repeated DB hits for the same branch_id.
@@ -77,6 +144,14 @@ class Payroll_api extends CI_Controller
 
         ini_set('memory_limit', '512M');
         ini_set('max_execution_time', 300);
+        // A large first run for a fresh period can outlast 300s; the web server's own
+        // timeout (nginx fastcgi_read_timeout / Apache Timeout, php-fpm
+        // request_terminate_timeout) is what actually bounds the request.
+        set_time_limit(0);
+        // CI keeps every query string + timing when save_queries is TRUE (it is, globally,
+        // in config/database.php). This endpoint issues thousands of queries and never
+        // calls last_query(), so retaining them is pure memory and CPU overhead.
+        $this->db->save_queries = FALSE;
 
         // Accept both GET and POST (JSON body / form-data / query string)
         $raw = file_get_contents("php://input");
@@ -305,6 +380,18 @@ class Payroll_api extends CI_Controller
 
             $approved_ot_list = get_approved_ot_list($shift_ids, $combined_first_day, $last_day);
 
+            // Index the approved-OT snapshot by shift + date so the per-employee-day
+            // lookup stops scanning the whole company list.
+            // LAST match wins, exactly like get_approved_ot_status_by_shift_and_date()
+            // (general_helper.php:3316) which has no `break` in its loop.
+            $this->_approved_ot_index = array();
+            foreach ($approved_ot_list as $a) {
+                $this->_approved_ot_index[$a->shift_id][$a->approve_date] = $a;
+            }
+            // Fresh write buffers for this run.
+            $this->_ot_days_buffer = array();
+            $this->_auto_approve_buffer = array();
+
             // --- EMPLOYEE FILTERING LOGIC ---
             $employees_from_group = array();
             $excluded_employees_from_group = array();
@@ -423,9 +510,25 @@ class Payroll_api extends CI_Controller
             if ($cid == 196) {
                 $interval_minutes = get_interval_minutes($cid);
 
+                // Sargable bounds on the raw `datetime` column, ADDED alongside (never
+                // instead of) the existing DATE(...) predicates so MySQL can range-seek
+                // an index instead of evaluating a function over every row.
+                //   DATE(datetime) >= F            <=>  datetime >= 'F 00:00:00'
+                //   DATE(datetime) <= L            <=>  datetime <  '(L+1d) 00:00:00'
+                //   DATE(datetime - X min) >= F    <=>  datetime >= 'F 00:00:00' + X min
+                //   DATE(datetime - X min) <= L    <=>  datetime <  '(L+1d) 00:00:00' + X min
+                // Pure interval arithmetic on the same values the DATE() calls use, so the
+                // added predicates are implied by them and cannot change the result set.
+                $cn_lower = self::shift_datetime($first_day, 0, 0);
+                $cn_upper = self::shift_datetime($last_day, 1, 0);
+                $cn_lower_shifted = self::shift_datetime($first_day, 0, $interval_minutes);
+                $cn_upper_shifted = self::shift_datetime($last_day, 1, $interval_minutes);
+
                 // Fetch Normal Clockings
                 $this->db->select('id,employee_id,type,shift_id,date_format(datetime,"%H:%i") as clock_time,date_format(datetime, "%Y-%m-%d") as search_date, add_by_admin, delete_by_admin, update_by_admin', false);
                 $this->db->from('clockings_news');
+                $this->db->where('datetime >=', $cn_lower);
+                $this->db->where('datetime <', $cn_upper);
                 $this->db->where('date(datetime) >=', $first_day);
                 $this->db->where('date(datetime) <=', $last_day);
                 $this->db->where_in('employee_id', $employees_ids);
@@ -436,6 +539,8 @@ class Payroll_api extends CI_Controller
                 // Fetch Overnight Clockings
                 $this->db->select('id,employee_id,type,shift_id, date_format(datetime,"%H:%i") as clock_time,date_format(date_sub(datetime, interval ' . $interval_minutes . ' minute), "%Y-%m-%d") as search_date, add_by_admin, delete_by_admin, update_by_admin', false);
                 $this->db->from('clockings_news');
+                $this->db->where('datetime >=', $cn_lower_shifted);
+                $this->db->where('datetime <', $cn_upper_shifted);
                 $this->db->where('date(date_sub(datetime, interval ' . $interval_minutes . ' minute)) >=', $first_day);
                 $this->db->where('date(date_sub(datetime, interval ' . $interval_minutes . ' minute)) <=', $last_day);
                 $this->db->where_in('employee_id', $employees_ids);
@@ -455,6 +560,40 @@ class Payroll_api extends CI_Controller
             }
 
             // --- OPTIMIZATION END ---
+
+            /**
+             * Group the clocking lists by employee_id ONCE, so calculate_summary_data()
+             * receives only the rows of the employee it is working on instead of the whole
+             * company's list. search_clocking_by_id() / get_clockings_from_previous_day()
+             * already filter on employee_id internally, so the rows returned and their order
+             * are unchanged — this only removes the per-employee-per-day full-list scan.
+             *
+             * Grouped by employee_id (never by search_date) on purpose: the row objects are
+             * shared by reference and get_clockings_from_previous_day() rewrites search_date /
+             * day_f / unused on them in place, so those mutations must stay visible exactly
+             * as they are today.
+             */
+            $result_list_by_emp = array();
+            foreach ($result_list as $r) {
+                $result_list_by_emp[$r->employee_id][] = $r;
+            }
+            $result_list_overnight_by_emp = array();
+            foreach ($result_list_overnight as $r) {
+                $result_list_overnight_by_emp[$r->employee_id][] = $r;
+            }
+
+            // Same idea for the clockings_news lists (cid 196 only) — replaces the per-employee
+            // array_filter() pass over the full list with a single grouping pass.
+            $clockings_news_by_emp = array();
+            $clockings_news_overnight_by_emp = array();
+            if ($cid == 196) {
+                foreach ($all_clockings_news as $r) {
+                    $clockings_news_by_emp[$r->employee_id][] = $r;
+                }
+                foreach ($all_clockings_news_overnight as $r) {
+                    $clockings_news_overnight_by_emp[$r->employee_id][] = $r;
+                }
+            }
 
             $data = [];
             $all_data = array();
@@ -488,16 +627,10 @@ class Payroll_api extends CI_Controller
                 $clockings_news_overnight = [];
 
                 if ($cid == 196) {
-                    // Filter in Memory (PHP 7.3 compatible closure)
-                    $current_emp_id = $emp->id;
-
-                    $clockings_news = array_values(array_filter($all_clockings_news, function ($item) use ($current_emp_id) {
-                        return $item->employee_id == $current_emp_id;
-                    }));
-
-                    $clockings_news_overnight = array_values(array_filter($all_clockings_news_overnight, function ($item) use ($current_emp_id) {
-                        return $item->employee_id == $current_emp_id;
-                    }));
+                    $clockings_news = isset($clockings_news_by_emp[$emp->id])
+                        ? $clockings_news_by_emp[$emp->id] : array();
+                    $clockings_news_overnight = isset($clockings_news_overnight_by_emp[$emp->id])
+                        ? $clockings_news_overnight_by_emp[$emp->id] : array();
                 }
 
                 // Call the logic-heavy function
@@ -505,8 +638,8 @@ class Payroll_api extends CI_Controller
                     $emp,
                     $first_day,
                     $last_day,
-                    $result_list,
-                    $result_list_overnight,
+                    isset($result_list_by_emp[$emp->id]) ? $result_list_by_emp[$emp->id] : array(),
+                    isset($result_list_overnight_by_emp[$emp->id]) ? $result_list_overnight_by_emp[$emp->id] : array(),
                     $company_working_hours,
                     false,
                     $company_ot_settings,
@@ -531,6 +664,10 @@ class Payroll_api extends CI_Controller
                 $all_data[] = $data;
             }
 
+            // All employees processed — write the buffered ot_days / auto_approve_days rows
+            // in one batched transaction instead of one round-trip per employee-day.
+            $this->_flush_ot_writes();
+
             // Note: Removed the early return of settings present in your original file
             // as it prevented the actual report generation.
 
@@ -552,6 +689,13 @@ class Payroll_api extends CI_Controller
                 "employees_ids" => $employees_ids
             ];
         } catch (Exception $e) {
+            // Persist whatever the aborted run already determined, so the OT state matches
+            // what the unbatched per-day writes would have left behind.
+            try {
+                $this->_flush_ot_writes();
+            } catch (Exception $flush_e) {
+                log_message('error', 'Payroll SQL API OT flush failed: ' . $flush_e->getMessage());
+            }
             log_message('error', 'Payroll SQL API Error: ' . $e->getMessage());
             $this->response_json(['error' => $e->getMessage()], 500);
         }
@@ -1204,16 +1348,233 @@ class Payroll_api extends CI_Controller
 
         $interval_minutes = get_interval_minutes($company_id);
 
-        $result = $ci->db->select('c.employee_id,c.id,date_format(date_sub(clock_in, interval ' . $interval_minutes . ' minute),"%d/%m %a") as day_f,clock_in as clock_in_o, date_format(clock_in,"%H:%i") as clock_in, date_format(clock_in,"%d-%m-%Y %H:%i") as clock_in_1,date_format(clock_out,"%H:%i") as clock_out,date_format(clock_out,"%d-%m-%Y %H:%i") as clock_out_1,clock_in_id,clock_out_id,s.grace_time as grace_time_o, date_format(s.end_time,"%H:%i") as end_time, date_format(s.grace_time,"%H:%i") as grace_time, s.start_time as start_time_o, date_format(s.start_time, "%H:%i") as start_time, s.name,s.code,reason,c.remark,date_format(end_time,"%H:%i") as end_time,date_format(overtime_starts,"%H:%i") as overtime_starts,date_format(early_ot_start,"%H:%i") as early_ot_start,date_format(early_ot_end,"%H:%i") as early_ot_end,time_format(timediff(end_time,start_time),"%H:%i") as shift_hours, fixed_ot, fixed_overtime, auto_approve_ot, r.remark as shift_remark, sr.remark as staff_remark, is_leave,void_late_in,void_early_out, date_format(break_duration,"%H:%i") as break_duration, date_format(break_1,"%H:%i") as break_1, consider_break_1, date_format(break_2,"%H:%i") as break_2, consider_break_2, date_format(break_3,"%H:%i") as break_3, consider_break_3, date_format(break_4,"%H:%i") as break_4, consider_break_4, date_format(break_5,"%H:%i") as break_5, consider_break_5, date_format(break_6,"%H:%i") as break_6, consider_break_6, half_day,date_format(date_sub(clock_in, interval ' . $interval_minutes . ' minute), "%Y-%m-%d") as search_date, s.extra_ot, date_format(s.extra_ot_worked_hours_more_than, "%H:%i") as extra_ot_worked_hours_more_than, date_format(s.extra_ot_hours, "%H:%i") as extra_ot_hours, date_format(extra_break_1,"%H:%i") as extra_break_1, date_format(extra_break_2,"%H:%i") as extra_break_2, date_format(extra_break_3,"%H:%i") as extra_break_3, date_format(extra_break_4,"%H:%i") as extra_break_4, date_format(extra_break_5,"%H:%i") as extra_break_5, date_format(extra_break_6,"%H:%i") as extra_break_6, extra_break, date_format(extra_break_worked_hours_more_than, "%H:%i") as extra_break_worked_hours_more_than', false)->from($clockings_table . ' c')->join('shifts s', 'c.shift_id = s.id', 'left')->join('remarks r', 'r.remark_date = date(date_sub(clock_in, interval ' . $interval_minutes . ' minute)) and r.employee_id = c.employee_id', 'left')->join('staff_remarks sr', 'sr.remark_date = date(date_sub(clock_in, interval ' . $interval_minutes . ' minute)) and sr.employee_id = c.employee_id', 'left')->where('date(date_sub(clock_in, interval ' . $interval_minutes . ' minute)) >=', $first_day)->where('date(date_sub(clock_in, interval ' . $interval_minutes . ' minute)) <=', $last_day)->where_in('c.employee_id', $employees)->order_by('clock_in_o')->get()->result();
+        // Sargable bounds on the raw c.clock_in column, ADDED to (not replacing) the
+        // existing DATE(DATE_SUB(...)) predicates below. Derivation, using the same
+        // already -1-day-shifted $first_day and the same $interval_minutes:
+        //   DATE(clock_in - X min) >= F  <=>  clock_in >= 'F 00:00:00' + X min
+        //   DATE(clock_in - X min) <= L  <=>  clock_in <  '(L+1d) 00:00:00' + X min
+        // The DATE() form already restricts the rows to exactly this range, so these
+        // extra predicates are logically redundant — they only give the optimizer a
+        // range it can seek on an index over clock_in.
+        $clock_in_lower = self::shift_datetime($first_day, 0, $interval_minutes);
+        $clock_in_upper = self::shift_datetime($last_day, 1, $interval_minutes);
+
+        $result = $ci->db->select('c.employee_id,c.id,date_format(date_sub(clock_in, interval ' . $interval_minutes . ' minute),"%d/%m %a") as day_f,clock_in as clock_in_o, date_format(clock_in,"%H:%i") as clock_in, date_format(clock_in,"%d-%m-%Y %H:%i") as clock_in_1,date_format(clock_out,"%H:%i") as clock_out,date_format(clock_out,"%d-%m-%Y %H:%i") as clock_out_1,clock_in_id,clock_out_id,s.grace_time as grace_time_o, date_format(s.end_time,"%H:%i") as end_time, date_format(s.grace_time,"%H:%i") as grace_time, s.start_time as start_time_o, date_format(s.start_time, "%H:%i") as start_time, s.name,s.code,reason,c.remark,date_format(end_time,"%H:%i") as end_time,date_format(overtime_starts,"%H:%i") as overtime_starts,date_format(early_ot_start,"%H:%i") as early_ot_start,date_format(early_ot_end,"%H:%i") as early_ot_end,time_format(timediff(end_time,start_time),"%H:%i") as shift_hours, fixed_ot, fixed_overtime, auto_approve_ot, r.remark as shift_remark, sr.remark as staff_remark, is_leave,void_late_in,void_early_out, date_format(break_duration,"%H:%i") as break_duration, date_format(break_1,"%H:%i") as break_1, consider_break_1, date_format(break_2,"%H:%i") as break_2, consider_break_2, date_format(break_3,"%H:%i") as break_3, consider_break_3, date_format(break_4,"%H:%i") as break_4, consider_break_4, date_format(break_5,"%H:%i") as break_5, consider_break_5, date_format(break_6,"%H:%i") as break_6, consider_break_6, half_day,date_format(date_sub(clock_in, interval ' . $interval_minutes . ' minute), "%Y-%m-%d") as search_date, s.extra_ot, date_format(s.extra_ot_worked_hours_more_than, "%H:%i") as extra_ot_worked_hours_more_than, date_format(s.extra_ot_hours, "%H:%i") as extra_ot_hours, date_format(extra_break_1,"%H:%i") as extra_break_1, date_format(extra_break_2,"%H:%i") as extra_break_2, date_format(extra_break_3,"%H:%i") as extra_break_3, date_format(extra_break_4,"%H:%i") as extra_break_4, date_format(extra_break_5,"%H:%i") as extra_break_5, date_format(extra_break_6,"%H:%i") as extra_break_6, extra_break, date_format(extra_break_worked_hours_more_than, "%H:%i") as extra_break_worked_hours_more_than', false)->from($clockings_table . ' c')->where('c.clock_in >=', $clock_in_lower)->where('c.clock_in <', $clock_in_upper)->join('shifts s', 'c.shift_id = s.id', 'left')->join('remarks r', 'r.remark_date = date(date_sub(clock_in, interval ' . $interval_minutes . ' minute)) and r.employee_id = c.employee_id', 'left')->join('staff_remarks sr', 'sr.remark_date = date(date_sub(clock_in, interval ' . $interval_minutes . ' minute)) and sr.employee_id = c.employee_id', 'left')->where('date(date_sub(clock_in, interval ' . $interval_minutes . ' minute)) >=', $first_day)->where('date(date_sub(clock_in, interval ' . $interval_minutes . ' minute)) <=', $last_day)->where_in('c.employee_id', $employees)->order_by('clock_in_o')->get()->result();
 
         return $result;
+    }
+
+    /**
+     * Wall-clock datetime arithmetic used to build the sargable clocking bounds.
+     *
+     * Done in UTC on purpose: MySQL's DATE_SUB(col, INTERVAL n MINUTE) is plain
+     * wall-clock arithmetic on a DATETIME, so a DST jump in the server's local
+     * timezone must not shift a boundary. Handles a negative $add_minutes too.
+     */
+    private static function shift_datetime($date, $add_days, $add_minutes)
+    {
+        $d = new DateTime($date . ' 00:00:00', new DateTimeZone('UTC'));
+        if ((int)$add_days !== 0) {
+            $d->modify(((int)$add_days) . ' day');
+        }
+        if ((int)$add_minutes !== 0) {
+            $d->modify(((int)$add_minutes) . ' minute');
+        }
+        return $d->format('Y-m-d H:i:s');
+    }
+
+    /**
+     * Build a date => row map for a per-employee list.
+     *
+     * Mirrors search_from_list() (general_helper.php:2023): that function returns the
+     * FIRST row whose ->date matches, so the first occurrence of a date wins here too.
+     * Both sides compare Y-m-d strings, and non-numeric date strings are never coerced
+     * by PHP's array-key rules, so the key comparison is the same string comparison.
+     */
+    private static function index_by_date($list)
+    {
+        $map = array();
+        foreach ($list as $l) {
+            if (!isset($map[$l->date])) {
+                $map[$l->date] = $l;
+            }
+        }
+        return $map;
+    }
+
+    /**
+     * Lookup counterpart of index_by_date(). Returns array() on a miss, exactly like
+     * search_from_list() — the empty array is falsy and JSON-encodes as [], which
+     * matters because it reaches the response through $obj->shift_check.
+     */
+    private static function from_date_index($map, $date)
+    {
+        return isset($map[$date]) ? $map[$date] : array();
+    }
+
+    /**
+     * Mirror of get_is_ot_status() — general_helper.php:3262-3313.
+     *
+     * The body below is copied line for line from that helper. Only two things differ,
+     * neither of which changes a returned value:
+     *
+     *   1. get_approved_ot_status_by_shift_and_date($approved_ot_list, $shift_id, $date)
+     *      is replaced by a lookup in $this->_approved_ot_index, which was built from the
+     *      very same $approved_ot_list with last-match-wins semantics — identical result,
+     *      without scanning the whole company list once per employee per day.
+     *   2. Each $ci->db->replace(...) appends to a buffer instead of executing.
+     *      _flush_ot_writes() emits them, in the same order, as batched REPLACE INTO
+     *      statements inside one transaction after the employee loop. Deferring is safe
+     *      because nothing in this run reads these two tables back: $is_ot_list comes
+     *      from the up-front bulk prefetch and $approved_ot_list is a fixed in-memory
+     *      snapshot taken before the loop.
+     *
+     * $is_ot is deliberately left uninitialised, exactly as in the helper, so the
+     * "$status truthy but is_approved != Yes" path returns the same value it does today.
+     *
+     * KEEP IN SYNC with general_helper.php:3262 if that helper ever changes.
+     */
+    private function _get_is_ot_status_buffered($shift_check, $date, $id, $clocking_count = 0, $cid = 0)
+    {
+        if ($shift_check && $shift_check->is_leave == "no" && $date <= date("Y-m-d")) {
+            $shift_id = $shift_check->id;
+            $status = isset($this->_approved_ot_index[$shift_id][$date])
+                ? $this->_approved_ot_index[$shift_id][$date]
+                : array();
+            if ($status) {
+                $is_ot = $status->is_approved == "Yes" ? true : false;
+                if ($status->is_approved == "Yes") {
+                    $ot_data = array(
+                        'employee_id' => $id,
+                        'ot_date' => $date,
+                        'is_ot' => 'Y'
+                    );
+                    $this->_ot_days_buffer[] = $ot_data;
+                }
+            } else {
+                $auto_approve_ot = $shift_check->auto_approve_ot;
+                $is_ot = $auto_approve_ot == "Yes" ? true : false;
+                $approve_data = array(
+                    'shift_id' => $shift_id,
+                    'approve_date' => $date,
+                    'is_approved' => $auto_approve_ot
+                );
+                $this->_auto_approve_buffer[] = $approve_data;
+                if ($auto_approve_ot == "Yes") {
+                    $ot_data = array(
+                        'employee_id' => $id,
+                        'ot_date' => $date,
+                        'is_ot' => 'Y'
+                    );
+                    $this->_ot_days_buffer[] = $ot_data;
+                }
+            }
+            return $is_ot;
+        } else if ((!isset($shift_check) || empty($shift_check)) && $date <= date("Y-m-d") && $clocking_count != 0) {
+            if ($cid != 39) {
+                $is_ot = true;
+                $ot_data = [
+                    'employee_id' => $id,
+                    'ot_date' => $date,
+                    'is_ot' => 'Y',
+                ];
+                $this->_ot_days_buffer[] = $ot_data;
+                return $is_ot;
+            }
+            return false;
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * Write out everything _get_is_ot_status_buffered() collected.
+     *
+     * Same rows, same final table state as the per-employee-day db->replace() calls —
+     * but as a handful of multi-row REPLACE INTO statements inside a single transaction
+     * instead of up to ~15,000 individual autocommitted round-trips.
+     *
+     * Buffered rows are emitted in the exact order they were produced and nothing is
+     * deduplicated, so MySQL applies the same sequence of REPLACEs it applies today.
+     * That keeps the result identical whether or not ot_days / auto_approve_days carry a
+     * unique key: with one, the same last-write-wins row survives; without one, the same
+     * number of rows is inserted.
+     */
+    private function _flush_ot_writes()
+    {
+        if (empty($this->_ot_days_buffer) && empty($this->_auto_approve_buffer)) {
+            return;
+        }
+
+        $ot_days = array_values($this->_ot_days_buffer);
+        $auto_approve = array_values($this->_auto_approve_buffer);
+
+        // Clear first: a partial failure must not be replayed by a later flush
+        // (the catch block also calls this method).
+        $this->_ot_days_buffer = array();
+        $this->_auto_approve_buffer = array();
+
+        $this->db->trans_start();
+
+        foreach (array_chunk($ot_days, 500) as $chunk) {
+            $values = array();
+            foreach ($chunk as $row) {
+                $values[] = '(' . $this->db->escape($row['employee_id']) . ','
+                    . $this->db->escape($row['ot_date']) . ','
+                    . $this->db->escape($row['is_ot']) . ')';
+            }
+            $this->db->query(
+                'REPLACE INTO ' . $this->db->protect_identifiers('ot_days', TRUE, NULL, FALSE)
+                . ' (' . $this->db->protect_identifiers('employee_id') . ','
+                . $this->db->protect_identifiers('ot_date') . ','
+                . $this->db->protect_identifiers('is_ot') . ') VALUES '
+                . implode(',', $values)
+            );
+        }
+
+        foreach (array_chunk($auto_approve, 500) as $chunk) {
+            $values = array();
+            foreach ($chunk as $row) {
+                $values[] = '(' . $this->db->escape($row['shift_id']) . ','
+                    . $this->db->escape($row['approve_date']) . ','
+                    . $this->db->escape($row['is_approved']) . ')';
+            }
+            $this->db->query(
+                'REPLACE INTO ' . $this->db->protect_identifiers('auto_approve_days', TRUE, NULL, FALSE)
+                . ' (' . $this->db->protect_identifiers('shift_id') . ','
+                . $this->db->protect_identifiers('approve_date') . ','
+                . $this->db->protect_identifiers('is_approved') . ') VALUES '
+                . implode(',', $values)
+            );
+        }
+
+        $this->db->trans_complete();
     }
 
     private function response_json($data, $status_code = 200)
     {
         http_response_code($status_code);
         header('Content-Type: application/json');
-        echo json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+
+        // JSON_PRETTY_PRINT dropped: it inflated large payloads with indentation only
+        // (roughly 30-50% of the bytes on these reports). The decoded data is identical.
+        $json = json_encode($data, JSON_UNESCAPED_SLASHES);
+
+        // Compress on the wire when the client advertises gzip. Transport only — the
+        // client decodes to exactly the same bytes.
+        if (
+            !headers_sent()
+            && !ini_get('zlib.output_compression')
+            && function_exists('ob_gzhandler')
+            && stripos((string)$this->input->get_request_header('Accept-Encoding'), 'gzip') !== false
+            && @ob_start('ob_gzhandler')
+        ) {
+            echo $json;
+            ob_end_flush();
+            exit;
+        }
+
+        echo $json;
         exit;
     }
 
@@ -1485,6 +1846,42 @@ class Payroll_api extends CI_Controller
         $last_ids = [];
         $dates = []; // Initialize dates array
 
+        // --- Date indexes for the lists above (built once per employee) --------------
+        // Every list here is loaded above and never modified afterwards, so one index
+        // per list stays valid for the whole period loop. self::from_date_index($idx, $d)
+        // returns exactly what search_from_list($list, $d) returns — same row (first
+        // match) or array() on a miss — without re-scanning the list for every day.
+        $shift_idx                = self::index_by_date($shift_list);
+        $replaced_ph_idx          = self::index_by_date($replaced_ph_list);
+        $is_ot_idx                = self::index_by_date($is_ot_list);
+        $is_late_idx              = self::index_by_date($is_late_list);
+        $is_late_break_idx        = self::index_by_date($is_late_break_list);
+        $is_early_out_idx         = self::index_by_date($is_early_out_list);
+        $is_offense_idx           = self::index_by_date($is_offense_list);
+        $manual_late_idx          = self::index_by_date($manual_late_list);
+        $manual_late_break_idx    = self::index_by_date($manual_late_break_list);
+        $manual_early_out_idx     = self::index_by_date($manual_early_out_list);
+        $manual_short_hours_idx   = self::index_by_date($manual_short_hours_list);
+        $manual_ot_idx            = self::index_by_date($manual_ot_list);
+        $trip_a_idx               = self::index_by_date($trip_a_list);
+        $trip_b_idx               = self::index_by_date($trip_b_list);
+        $remark_idx               = self::index_by_date($remark_list);
+        $staff_remark_idx         = self::index_by_date($staff_remark_list);
+
+        if ($cid == 66) {
+            $manual_ta_idx     = self::index_by_date($manual_ta_list);
+            $manual_ma_idx     = self::index_by_date($manual_ma_list);
+            $manual_ca_idx     = self::index_by_date($manual_ca_list);
+            $manual_spa_idx    = self::index_by_date($manual_spa_list);
+            $manual_aca_idx    = self::index_by_date($manual_aca_list);
+            $manual_fl_idx     = self::index_by_date($manual_fl_list);
+            $manual_cw_idx     = self::index_by_date($manual_cw_list);
+            $manual_mo_idx     = self::index_by_date($manual_mo_list);
+            $manual_shift1_idx = self::index_by_date($manual_shift1_list);
+            $manual_shift2_idx = self::index_by_date($manual_shift2_list);
+            $manual_shift3_idx = self::index_by_date($manual_shift3_list);
+        }
+
         foreach ($period as $date) {
             $obj = new stdClass();
             $obj->date = $date->format('Y-m-d');
@@ -1525,8 +1922,8 @@ class Payroll_api extends CI_Controller
             $overnight = false;
             $is_shift = false;
 
-            $shift_check = search_from_list($shift_list, $obj->date);
-            $next_shift_check = search_from_list($shift_list, add_days_to_date($date, 1)->format("Y-m-d"));
+            $shift_check = self::from_date_index($shift_idx, $obj->date);
+            $next_shift_check = self::from_date_index($shift_idx, add_days_to_date($date, 1)->format("Y-m-d"));
             $obj->shift_check = $shift_check;
             $obj->shift_name = "";
             $obj->acting_code = "";
@@ -1566,7 +1963,7 @@ class Payroll_api extends CI_Controller
             $obj->is_paid_leave = $shift_check && $shift_check->is_leave == "yes" && $shift_check->is_paid == "yes";
             $obj->is_unpaid_leave = $shift_check && $shift_check->is_leave == "yes" && $shift_check->is_paid == "no";
 
-            $is_replaced_ph = search_from_list($replaced_ph_list, $obj->date) ? true : false;
+            $is_replaced_ph = self::from_date_index($replaced_ph_idx, $obj->date) ? true : false;
             $obj->is_replaced_ph = $is_replaced_ph;
             $obj->merit_is_half_day_paid = false;
             $obj->merit_is_full_day_paid = false;
@@ -1751,29 +2148,31 @@ class Payroll_api extends CI_Controller
             $total_clockings = count($result);
             $formatted_data = array();
 
-            $is_ot_result = search_from_list($is_ot_list, $obj->date);
+            $is_ot_result = self::from_date_index($is_ot_idx, $obj->date);
             if ($is_ot_result) {
                 $is_ot = $is_ot_result->is_ot == "Y" ? true : false;
             } else {
-                $is_ot = get_is_ot_status($approved_ot_list, $shift_check, $obj->date, $emp_id, $total_clockings, $cid);
+                // Same result as get_is_ot_status($approved_ot_list, ...) — indexed lookup
+                // + buffered writes. See _get_is_ot_status_buffered().
+                $is_ot = $this->_get_is_ot_status_buffered($shift_check, $obj->date, $emp_id, $total_clockings, $cid);
             }
 
-            $is_late_result = search_from_list($is_late_list, $obj->date);
+            $is_late_result = self::from_date_index($is_late_idx, $obj->date);
             if ($is_late_result) {
                 $is_late = $is_late_result->is_late == "Y" ? true : false;
             }
 
-            $is_late_break_result = search_from_list($is_late_break_list, $obj->date);
+            $is_late_break_result = self::from_date_index($is_late_break_idx, $obj->date);
             if ($is_late_break_result) {
                 $is_late_break = $is_late_break_result->is_late_break == "Y" ? true : false;
             }
 
-            $is_early_out_result = search_from_list($is_early_out_list, $obj->date);
+            $is_early_out_result = self::from_date_index($is_early_out_idx, $obj->date);
             if ($is_early_out_result) {
                 $is_early_out = $is_early_out_result->is_early_out == "Y" ? true : false;
             }
 
-            $is_offense_result = search_from_list($is_offense_list, $obj->date);
+            $is_offense_result = self::from_date_index($is_offense_idx, $obj->date);
             if ($is_offense_result) {
                 $obj->merit_is_offense = $is_offense_result->is_offense == "Y" ? true : false;
             }
@@ -1821,7 +2220,7 @@ class Payroll_api extends CI_Controller
                 }
             }
             if (!$half_day) {
-                $manual_early_out = search_from_list($manual_early_out_list, $obj->date);
+                $manual_early_out = self::from_date_index($manual_early_out_idx, $obj->date);
                 if ($manual_early_out) {
                     $early_out = $manual_early_out->early_out;
                     $early_out = round_off_early_out($early_out, $_cached_early_out_settings, false);
@@ -1859,7 +2258,7 @@ class Payroll_api extends CI_Controller
                 }
                 $total_hours = add_time($total_hours, $value->total_time);
                 if ($key == 0) {
-                    $manual_late = search_from_list($manual_late_list, $obj->date);
+                    $manual_late = self::from_date_index($manual_late_idx, $obj->date);
                     if ($manual_late) {
                         $late_hours = $manual_late->late_hours;
                         $late_hours = round_off_late_in($late_hours, $_cached_late_in_settings, false);
@@ -1923,7 +2322,7 @@ class Payroll_api extends CI_Controller
                 $work_hours = sub_time($work_hours, $extra_break_not_taken);
             }
             if (!$half_day) {
-                $manual_short_hours = search_from_list($manual_short_hours_list, $obj->date);
+                $manual_short_hours = self::from_date_index($manual_short_hours_idx, $obj->date);
                 if ($manual_short_hours) {
                     $short_hours = $manual_short_hours->short_hours;
                 } else {
@@ -1931,8 +2330,8 @@ class Payroll_api extends CI_Controller
                 }
             }
 
-            $trip_a = search_from_list($trip_a_list, $obj->date);
-            $trip_b = search_from_list($trip_b_list, $obj->date);
+            $trip_a = self::from_date_index($trip_a_idx, $obj->date);
+            $trip_b = self::from_date_index($trip_b_idx, $obj->date);
             if ($trip_a) {
                 $tripA = $trip_a->no_of_trips;
                 $total_trip_a += $trip_a->no_of_trips;
@@ -1943,7 +2342,7 @@ class Payroll_api extends CI_Controller
             }
 
             if (isset($v) && !$half_day) {
-                $manual_late_break = search_from_list($manual_late_break_list, $obj->date);
+                $manual_late_break = self::from_date_index($manual_late_break_idx, $obj->date);
                 if ($manual_late_break) {
                     $break_late_hours = $manual_late_break->late_hours_break;
                     $break_late_hours = round_off_late_break($break_late_hours, $_cached_late_break_settings, false);
@@ -2124,7 +2523,7 @@ class Payroll_api extends CI_Controller
                     $decimal_early_out = $final_company_working_hours_decimal - $decimal_work_hours;
                     $eight_hours_early_out = decimal_to_time($decimal_early_out);
                     if (!$half_day) {
-                        $manual_early_out = search_from_list($manual_early_out_list, $obj->date);
+                        $manual_early_out = self::from_date_index($manual_early_out_idx, $obj->date);
                         if ($manual_early_out) {
                             $early_out = $manual_early_out->early_out;
                         } else if ($last_out != "" && $shift_check && $shift_check->void_early_out == "No") {
@@ -2144,7 +2543,7 @@ class Payroll_api extends CI_Controller
             $overtime_m = "";
             $overtime_type = "+";
             $is_manual_exist = false;
-            $manual_ot = search_from_list($manual_ot_list, $obj->date);
+            $manual_ot = self::from_date_index($manual_ot_idx, $obj->date);
             if ($manual_ot) {
                 $overtime_m = $manual_ot->overtime;
                 $overtime_type = $manual_ot->type;
@@ -2252,37 +2651,37 @@ class Payroll_api extends CI_Controller
                     $obj->bmi_shift3_final = $obj->bmi_shift3 = number_format($employee->shift3_rate, 2);
                 }
 
-                $manual_ta = search_from_list($manual_ta_list, $obj->date);
+                $manual_ta = self::from_date_index($manual_ta_idx, $obj->date);
                 if ($manual_ta) $obj->bmi_ta_final = $obj->bmi_ta_manual = number_format($manual_ta->value, 2);
 
-                $manual_ma = search_from_list($manual_ma_list, $obj->date);
+                $manual_ma = self::from_date_index($manual_ma_idx, $obj->date);
                 if ($manual_ma) $obj->bmi_ma_final = $obj->bmi_ma_manual = number_format($manual_ma->value, 2);
 
-                $manual_ca = search_from_list($manual_ca_list, $obj->date);
+                $manual_ca = self::from_date_index($manual_ca_idx, $obj->date);
                 if ($manual_ca) $obj->bmi_ca_final = $obj->bmi_ca_manual = number_format($manual_ca->value, 2);
 
-                $manual_spa = search_from_list($manual_spa_list, $obj->date);
+                $manual_spa = self::from_date_index($manual_spa_idx, $obj->date);
                 if ($manual_spa) $obj->bmi_spa_final = $obj->bmi_spa_manual = number_format($manual_spa->value, 2);
 
-                $manual_aca = search_from_list($manual_aca_list, $obj->date);
+                $manual_aca = self::from_date_index($manual_aca_idx, $obj->date);
                 if ($manual_aca) $obj->bmi_aca_final = $obj->bmi_aca_manual = number_format($manual_aca->value, 2);
 
-                $manual_fl = search_from_list($manual_fl_list, $obj->date);
+                $manual_fl = self::from_date_index($manual_fl_idx, $obj->date);
                 if ($manual_fl) $obj->bmi_fl_final = $obj->bmi_fl_manual = number_format($manual_fl->value, 2);
 
-                $manual_cw = search_from_list($manual_cw_list, $obj->date);
+                $manual_cw = self::from_date_index($manual_cw_idx, $obj->date);
                 if ($manual_cw) $obj->bmi_cw_final = $obj->bmi_cw_manual = number_format($manual_cw->value, 2);
 
-                $manual_mo = search_from_list($manual_mo_list, $obj->date);
+                $manual_mo = self::from_date_index($manual_mo_idx, $obj->date);
                 if ($manual_mo) $obj->bmi_mo_final = $obj->bmi_mo_manual = number_format($manual_mo->value, 2);
 
-                $manual_shift1 = search_from_list($manual_shift1_list, $obj->date);
+                $manual_shift1 = self::from_date_index($manual_shift1_idx, $obj->date);
                 if ($manual_shift1) $obj->bmi_shift1_final = $obj->bmi_shift1_manual = number_format($manual_shift1->value, 2);
 
-                $manual_shift2 = search_from_list($manual_shift2_list, $obj->date);
+                $manual_shift2 = self::from_date_index($manual_shift2_idx, $obj->date);
                 if ($manual_shift2) $obj->bmi_shift2_final = $obj->bmi_shift2_manual = number_format($manual_shift2->value, 2);
 
-                $manual_shift3 = search_from_list($manual_shift3_list, $obj->date);
+                $manual_shift3 = self::from_date_index($manual_shift3_idx, $obj->date);
                 if ($manual_shift3) $obj->bmi_shift3_final = $obj->bmi_shift3_manual = number_format($manual_shift3->value, 2);
 
                 $total_bmi_ot += ($obj->bmi_ot ? $obj->bmi_ot : 0);
@@ -2407,15 +2806,15 @@ class Payroll_api extends CI_Controller
                 $shift_name = "";
                 $shift_code = "";
                 $cut_off_time = "";
-                $shift = search_from_list($shift_list, $obj->date);
+                $shift = self::from_date_index($shift_idx, $obj->date);
                 if ($shift) {
                     $shift_name = $shift->name;
                     $shift_code = $shift->code;
                     $cut_off_time = $shift->cut_off_time;
                 }
 
-                $remark = search_from_list($remark_list, $obj->date);
-                $staff_remark = search_from_list($staff_remark_list, $obj->date);
+                $remark = self::from_date_index($remark_idx, $obj->date);
+                $staff_remark = self::from_date_index($staff_remark_idx, $obj->date);
 
                 $no_data = new stdClass();
                 $no_data->day_f = $date_string;
@@ -2521,8 +2920,8 @@ class Payroll_api extends CI_Controller
 
                 foreach ($dates as $d) {
                     $is_manual_exist = false;
-                    $manual_ot = search_from_list($manual_ot_list, $d->date);
-                    $shift_check = search_from_list($shift_list, $d->date);
+                    $manual_ot = self::from_date_index($manual_ot_idx, $d->date);
+                    $shift_check = self::from_date_index($shift_idx, $d->date);
                     if ($manual_ot) {
                         $overtime_m = $manual_ot->overtime;
                         $overtime_type = $manual_ot->type;
@@ -2545,11 +2944,20 @@ class Payroll_api extends CI_Controller
             }
         } else if ($ot_type_data->ot_type === "monthly_ot") {
             $days_in_month = (int)date('t', strtotime($obj->date));
-            $no_of_working_days = $ci->db->select("id, days")->from("monthly_working_days")
-                ->where('month', $date->format('m'))
-                ->where('year', $date->format('Y'))
-                ->where('company_id', $cid)
-                ->where('branch_id', $employee->branch_id)->get()->row();
+            // Memoized per month|year|company|branch — the query's only inputs. Same row
+            // (including a null result) for every employee sharing those four values, so
+            // this removes one query per employee without changing what is returned.
+            $mwd_key = $date->format('m') . '|' . $date->format('Y') . '|' . $cid . '|' . $employee->branch_id;
+            if (array_key_exists($mwd_key, $this->_monthly_working_days_cache)) {
+                $no_of_working_days = $this->_monthly_working_days_cache[$mwd_key];
+            } else {
+                $no_of_working_days = $ci->db->select("id, days")->from("monthly_working_days")
+                    ->where('month', $date->format('m'))
+                    ->where('year', $date->format('Y'))
+                    ->where('company_id', $cid)
+                    ->where('branch_id', $employee->branch_id)->get()->row();
+                $this->_monthly_working_days_cache[$mwd_key] = $no_of_working_days;
+            }
 
             $work_decimal = toDecimal($work);
             $off_days_m = 0;
@@ -2576,8 +2984,8 @@ class Payroll_api extends CI_Controller
 
                 foreach ($dates as $d) {
                     $is_manual_exist = false;
-                    $manual_ot = search_from_list($manual_ot_list, $d->date);
-                    $shift_check = search_from_list($shift_list, $d->date);
+                    $manual_ot = self::from_date_index($manual_ot_idx, $d->date);
+                    $shift_check = self::from_date_index($shift_idx, $d->date);
                     if ($manual_ot) {
                         $overtime_m = $manual_ot->overtime;
                         $overtime_type = $manual_ot->type;
